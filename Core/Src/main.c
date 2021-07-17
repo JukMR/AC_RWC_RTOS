@@ -41,13 +41,9 @@ void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 
 
-typedef struct
-{
-  float Temperature;
-  float Humidity;
-} DHTData_Typedef;
 
-DHTData_Typedef DHT11_Data;
+
+DHT_DataTypedef DHT11_Data;
 float temp;
 float hum;
 
@@ -62,9 +58,9 @@ typedef struct
 
 typedef struct
 {
-  DHTData_Typedef data;
-  Threshold_TypeDef temp;
-  Threshold_TypeDef hum;
+  DHT_DataTypedef dhtPolledData;
+  Threshold_TypeDef temp_Struct;
+  Threshold_TypeDef hum_Struct;
 } ControlTempParams;
 
 void pull_dht_data(float *temp, float *hum)
@@ -80,7 +76,7 @@ float buffer[2];
 void vPollDHT(float *buffer)
 {
 
-  LED_blinky(ledGreen, 1, 1, 2);
+//  LED_blinky(ledGreen, 1, 1, 2);
 
   pull_dht_data(&temp, &hum);
 
@@ -127,7 +123,7 @@ void vSetHum(int Value)
   Uart_sendstring(buffer, &uart_command);
 }
 
-void vControlTempHum(DHTData_Typedef *data, Threshold_TypeDef *temp_threshold, Threshold_TypeDef *hum_threshold)
+void vControlTempHum(ControlTempParams *param1)
 {
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -135,56 +131,56 @@ void vControlTempHum(DHTData_Typedef *data, Threshold_TypeDef *temp_threshold, T
   // Temperature Control
 
   // Threshold activated
-  if (temp_threshold->thresholdSet)
+  if (param1->temp_Struct.thresholdSet)
   {
 
     // temperature is lower than threshold
-    if (data->Temperature < temp_threshold->min)
+    if (param1->dhtPolledData.Temperature < param1->temp_Struct.min)
     {
-      vSetTemp(temp_threshold->max);
+      vSetTemp(param1->temp_Struct.max);
 
       // temperature is higher than threshold
     }
-    else if (data->Temperature > temp_threshold->max)
+    else if (param1->dhtPolledData.Temperature > param1->temp_Struct.max)
     {
-      vSetTemp(temp_threshold->min);
+      vSetTemp(param1->temp_Struct.min);
     }
 
     // temperature value set
   }
-  else if (temp_threshold->valueSet)
+  else if (param1->temp_Struct.valueSet)
   {
-    if (data->Temperature != temp_threshold->value)
+    if (param1->dhtPolledData.Temperature != param1->temp_Struct.value)
     {
-      vSetTemp(temp_threshold->value);
+      vSetTemp(param1->temp_Struct.value);
     }
   }
 
   // Humidity Control
 
   // Threshold activated
-  if (hum_threshold->thresholdSet)
+  if (param1->hum_Struct.thresholdSet)
   {
 
     // temperature is lower than threshold
-    if (data->Humidity < hum_threshold->min)
+    if (param1->dhtPolledData.Humidity < param1->hum_Struct.min)
     {
-      vSetHum(hum_threshold->max);
+      vSetHum(param1->hum_Struct.max);
 
       // temperature is higher than threshold
     }
-    else if (data->Humidity > hum_threshold->max)
+    else if (param1->dhtPolledData.Humidity > param1->hum_Struct.max)
     {
-      vSetHum(hum_threshold->min);
+      vSetHum(param1->hum_Struct.min);
     }
 
     // temperature value set
   }
-  else if (hum_threshold->valueSet)
+  else if (param1->hum_Struct.valueSet)
   {
-    if (data->Humidity != hum_threshold->value)
+    if (param1->dhtPolledData.Humidity != param1->hum_Struct.value)
     {
-      vSetHum(hum_threshold->value);
+      vSetHum(param1->hum_Struct.value);
     }
   }
 

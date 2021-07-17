@@ -15,6 +15,7 @@ GPIOLED_TypeDef gpio_ledBlue = {GPIOD, GPIO_PIN_15};
 GPIOLED_TypeDef gpio_ledOrange = {GPIOD, GPIO_PIN_13};
 GPIOLED_TypeDef gpio_ledGreen = {GPIOD, GPIO_PIN_12};
 
+
 void *ledRed;
 void *ledBlue;
 void *ledOrange;
