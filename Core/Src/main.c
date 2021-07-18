@@ -35,7 +35,7 @@
 #include "ESPDataLogger.h"
 #include "DHT.h"
 
-// Remove after re-implementation of uart_Sendstring
+/* Remove after re-implementation of uart_Sendstring */
 #include "UartRingbuffer.h"
 
 #include "led.h"
@@ -215,9 +215,11 @@ void vTurnOff()
 void vTaskGetDataDHT(void *ptr)
 {
 
+char buf[30];
+char *many;
+
   for (;;)
   {
-
     TickType_t xLastWakeTime;
 
     xLastWakeTime = xTaskGetTickCount();
@@ -225,6 +227,12 @@ void vTaskGetDataDHT(void *ptr)
     DHT_DataTypedef *data_struct = (DHT_DataTypedef *)ptr;
 
     DHT_GetData(data_struct);
+
+
+    sprintf(buf, "Temp: %d, Hum:%d\r\n", (int)data_struct->Temperature, (int)data_struct->Humidity);
+
+
+    Uart_sendstring(buf, uart_command);
 
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(6000));
   }
@@ -264,12 +272,19 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
 
+
   /* USER CODE BEGIN 2 */
+
+  LED_Init();
+
+  LED_on(ledOrange);
 
   /* Initialize Uart library */
   Ringbuf_init();
 
   static DHT_DataTypedef DHT11_Data = {0.0f};
+
+
 
   /* USER CODE END 2 */
 
@@ -278,11 +293,12 @@ int main(void)
   /* Start scheduler */
   //  osKernelStart();
 
-  ControlTempParams param1;
+  ControlTempParams param1 = {0};
+
 
   param1.temp_Struct.min = 5;
 
-  xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &DHT11_Data, 2, NULL);
+  xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &param1.dhtPolledData, 2, NULL);
   xTaskCreate(vControlTempHum, "controlTemp", 1000, &param1, 1, NULL);
   //  xTaskCreate( vSendDataThingSpeak, "SendDataThingSpeak", 1000, &buffer, 1, NULL);
   //  xTaskCreate( vRefreshWebserver, "RefreshWebserver", 1000, &buffer, 1, NULL);
