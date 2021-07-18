@@ -57,6 +57,7 @@ void SysTick_Handler(void);
 void USART1_IRQHandler(void);
 void USART2_IRQHandler(void);
 void USART6_IRQHandler(void);
+void FPU_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

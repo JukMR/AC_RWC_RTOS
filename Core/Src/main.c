@@ -1,32 +1,51 @@
-
-#include "stdio.h"
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
+  * All rights reserved.</center></h2>
+  *
+  * This software component is licensed by ST under Ultimate Liberty license
+  * SLA0044, the "License"; You may not use this file except in compliance with
+  * the License. You may obtain a copy of the License at:
+  *                             www.st.com/SLA0044
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
 #include "usart.h"
 #include "gpio.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
+#include "stdio.h"
 #include "stdbool.h"
 #include "FreeRTOS.h"
 #include "task.h"
-
-
 
 #include "ESP_DATA_HANDLER.h"
 #include "ESPDataLogger.h"
 #include "DHT.h"
 
-
 // Remove after re-implementation of uart_Sendstring
 #include "UartRingbuffer.h"
 
-//#include "led.h"
+#include "led.h"
 
 #define uart_command &huart2
 
-void SystemClock_Config(void);
-void MX_FREERTOS_Init(void);
+/* USER CODE END Includes */
 
-
-
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
 typedef struct
 {
   bool valueSet;
@@ -36,7 +55,6 @@ typedef struct
   int max;
 } Threshold_TypeDef;
 
-
 typedef struct
 {
   DHT_DataTypedef dhtPolledData;
@@ -44,22 +62,35 @@ typedef struct
   Threshold_TypeDef hum_Struct;
 } ControlTempParams;
 
+/* USER CODE END PTD */
 
-//void pull_dht_data(DHT_DataTypedef *DHT11_Data)
-//{
-//  DHT_GetData(DHT11_Data);
-////  *temp = DHT11_Data.Temperature;
-////  *hum = DHT11_Data.Humidity;
-//}
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+/* USER CODE END PD */
 
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
 
+/* USER CODE END PM */
 
-// Agregar un buffer sin condiciones de carrera para esto
-//void vPollDHT(DHT_DataTypedef *data_struct)
-//{
-//  pull_dht_data(data_struct);
-//}
+/* Private variables ---------------------------------------------------------*/
 
+/* USER CODE BEGIN PV */
+void *ledRed;
+void *ledBlue;
+void *ledOrange;
+void *ledGreen;
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+//void MX_FREERTOS_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
 
 void vSendDataThingSpeak(float *buffer)
 {
@@ -69,8 +100,7 @@ void vSendDataThingSpeak(float *buffer)
   ESP_Send_Multi("U6123BFR6YNW5I4V", 2, buffer);
 
   // wait 15s between sends
-  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS( 15000 ));
-
+  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(15000));
 }
 
 void vRefreshWebserver(float *buffer)
@@ -79,9 +109,8 @@ void vRefreshWebserver(float *buffer)
 
   Server_Start();
 
-  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS( 4000 ));
+  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(4000));
 }
-
 
 void vSetTemp(int Value)
 {
@@ -92,7 +121,6 @@ void vSetTemp(int Value)
   Uart_sendstring(buffer, uart_command);
 }
 
-
 void vSetHum(int Value)
 {
   char buffer[40] = {0};
@@ -102,135 +130,174 @@ void vSetHum(int Value)
   Uart_sendstring(buffer, uart_command);
 }
 
-
 void vControlTempHum(void *ptr)
 {
-  TickType_t xLastWakeTime = xTaskGetTickCount();
-
-  ControlTempParams *param1 = (ControlTempParams *) ptr;
-
-  // Temperature Control
-
-  // Threshold activated
-  if (param1->temp_Struct.thresholdSet)
+  for (;;)
   {
+    TickType_t xLastWakeTime = xTaskGetTickCount();
 
-    // temperature is lower than threshold
-    if (param1->dhtPolledData.Temperature < param1->temp_Struct.min)
+    ControlTempParams *param1 = (ControlTempParams *)ptr;
+
+    // Temperature Control
+
+    // Threshold activated
+    if (param1->temp_Struct.thresholdSet)
     {
-      vSetTemp(param1->temp_Struct.max);
 
-      // temperature is higher than threshold
+      // temperature is lower than threshold
+      if (param1->dhtPolledData.Temperature < param1->temp_Struct.min)
+      {
+        vSetTemp(param1->temp_Struct.max);
+
+        // temperature is higher than threshold
+      }
+      else if (param1->dhtPolledData.Temperature > param1->temp_Struct.max)
+      {
+        vSetTemp(param1->temp_Struct.min);
+      }
+
+      // temperature value set
     }
-    else if (param1->dhtPolledData.Temperature > param1->temp_Struct.max)
+    else if (param1->temp_Struct.valueSet)
     {
-      vSetTemp(param1->temp_Struct.min);
+      if (param1->dhtPolledData.Temperature != param1->temp_Struct.value)
+      {
+        vSetTemp(param1->temp_Struct.value);
+      }
     }
 
-    // temperature value set
+    // Humidity Control
+
+    // Threshold activated
+    if (param1->hum_Struct.thresholdSet)
+    {
+
+      // temperature is lower than threshold
+      if (param1->dhtPolledData.Humidity < param1->hum_Struct.min)
+      {
+        vSetHum(param1->hum_Struct.max);
+
+        // temperature is higher than threshold
+      }
+      else if (param1->dhtPolledData.Humidity > param1->hum_Struct.max)
+      {
+        vSetHum(param1->hum_Struct.min);
+      }
+
+      // temperature value set
+    }
+    else if (param1->hum_Struct.valueSet)
+    {
+      if (param1->dhtPolledData.Humidity != param1->hum_Struct.value)
+      {
+        vSetHum(param1->hum_Struct.value);
+      }
+    }
+
+    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(3000));
   }
-  else if (param1->temp_Struct.valueSet)
-  {
-    if (param1->dhtPolledData.Temperature != param1->temp_Struct.value)
-    {
-      vSetTemp(param1->temp_Struct.value);
-    }
-  }
-
-  // Humidity Control
-
-  // Threshold activated
-  if (param1->hum_Struct.thresholdSet)
-  {
-
-    // temperature is lower than threshold
-    if (param1->dhtPolledData.Humidity < param1->hum_Struct.min)
-    {
-      vSetHum(param1->hum_Struct.max);
-
-      // temperature is higher than threshold
-    }
-    else if (param1->dhtPolledData.Humidity > param1->hum_Struct.max)
-    {
-      vSetHum(param1->hum_Struct.min);
-    }
-
-    // temperature value set
-  }
-  else if (param1->hum_Struct.valueSet)
-  {
-    if (param1->dhtPolledData.Humidity != param1->hum_Struct.value)
-    {
-      vSetHum(param1->hum_Struct.value);
-    }
-  }
-
-  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS( 3000 ));
 }
 
-void vTurnOn(){
+void vTurnOn()
+{
   char buffer[20] = {0};
   sprintf(buffer, "do=turnon.\r\n");
   Uart_sendstring(buffer, uart_command);
-
 }
 
-void vTurnOff(){
+void vTurnOff()
+{
   char buffer[20] = {0};
   sprintf(buffer, "do=turnoff.\r\n");
   Uart_sendstring(buffer, uart_command);
-
 }
 
-
-
-void vTaskGetData (void *ptr) {
-
-  TickType_t xLastWakeTime = xTaskGetTickCount();
-
-  DHT_DataTypedef *data_struct = (DHT_DataTypedef *) ptr;
-
-  DHT_GetData(data_struct);
-
-
-  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS( 6000 ));
-}
-
-int main(void)
+void vTaskGetDataDHT(void *ptr)
 {
 
+  for (;;)
+  {
+
+    TickType_t xLastWakeTime;
+
+    xLastWakeTime = xTaskGetTickCount();
+
+    DHT_DataTypedef *data_struct = (DHT_DataTypedef *)ptr;
+
+    DHT_GetData(data_struct);
+
+    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(6000));
+  }
+}
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
   SystemClock_Config();
 
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
-//  LED_Init();
 
-//  ESP_Init("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
+  /* USER CODE BEGIN 2 */
 
-//  LED_on(ledBlue);
-
-
-  MX_FREERTOS_Init();
+  /* Initialize Uart library */
+  Ringbuf_init();
 
   static DHT_DataTypedef DHT11_Data = {0.0f};
+
+  /* USER CODE END 2 */
+
+  /* Call init function for freertos objects (in freertos.c) */
+  //  MX_FREERTOS_Init();
+  /* Start scheduler */
+  //  osKernelStart();
 
   ControlTempParams param1;
 
   param1.temp_Struct.min = 5;
-  Uart_sendstring("HOlaaaA", uart_command);
 
-
-  xTaskCreate( vTaskGetData, "vTaskGetData", 1000, &DHT11_Data, 2, NULL);
-   xTaskCreate( vControlTempHum, "controlTemp", 1000, &param1, 1, NULL);
-//  xTaskCreate( vSendDataThingSpeak, "SendDataThingSpeak", 1000, &buffer, 1, NULL);
-//  xTaskCreate( vRefreshWebserver, "RefreshWebserver", 1000, &buffer, 1, NULL);
+  xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &DHT11_Data, 2, NULL);
+  xTaskCreate(vControlTempHum, "controlTemp", 1000, &param1, 1, NULL);
+  //  xTaskCreate( vSendDataThingSpeak, "SendDataThingSpeak", 1000, &buffer, 1, NULL);
+  //  xTaskCreate( vRefreshWebserver, "RefreshWebserver", 1000, &buffer, 1, NULL);
   vTaskStartScheduler();
 
-  return 0;
+  /* We should never get here as control is now taken by the scheduler */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
 }
 
 /**
@@ -263,8 +330,7 @@ void SystemClock_Config(void)
   }
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -295,7 +361,7 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

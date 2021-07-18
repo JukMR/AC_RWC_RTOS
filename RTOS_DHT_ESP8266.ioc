@@ -1,7 +1,8 @@
 #MicroXplorer Configuration settings - do not modify
-FREERTOS.IPParameters=Tasks01,configENABLE_FPU
-FREERTOS.Tasks01=defaultTask,0,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL
-FREERTOS.configENABLE_FPU=0
+FREERTOS.FootprintOK=true
+FREERTOS.INCLUDE_vTaskDelayUntil=1
+FREERTOS.IPParameters=Tasks01,INCLUDE_vTaskDelayUntil,FootprintOK
+FREERTOS.Tasks01=defaultTask,0,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL;vTaskGetDataNam,0,128,vTaskGetData,Default,&DHT11_Data,Dynamic,NULL,NULL
 File.Version=6
 GPIO.groupedBy=Group By Peripherals
 KeepUserPlacement=false
@@ -35,6 +36,7 @@ MxCube.Version=6.2.1
 MxDb.Version=DB.6.0.21
 NVIC.BusFault_IRQn=true\:0\:0\:false\:false\:true\:false\:true\:false
 NVIC.DebugMonitor_IRQn=true\:0\:0\:false\:false\:true\:false\:true\:false
+NVIC.FPU_IRQn=true\:5\:0\:false\:false\:true\:true\:true\:false
 NVIC.ForceEnableDMAVector=true
 NVIC.HardFault_IRQn=true\:0\:0\:false\:false\:true\:false\:true\:false
 NVIC.MemoryManagement_IRQn=true\:0\:0\:false\:false\:true\:false\:true\:false
