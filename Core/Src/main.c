@@ -1,51 +1,31 @@
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
 
+#include "stdio.h"
 #include "main.h"
 #include "cmsis_os.h"
 #include "usart.h"
 #include "gpio.h"
 #include "stdbool.h"
 #include "FreeRTOS.h"
-//#include "Task.h"
+#include "task.h"
 
 
 
-#include "led.h"
 #include "ESP_DATA_HANDLER.h"
 #include "ESPDataLogger.h"
 #include "DHT.h"
-#include "stdio.h"
+
 
 // Remove after re-implementation of uart_Sendstring
 #include "UartRingbuffer.h"
 
-#define uart_command huart2
+//#include "led.h"
+
+#define uart_command &huart2
 
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 
 
-
-
-DHT_DataTypedef DHT11_Data;
-float temp;
-float hum;
 
 typedef struct
 {
@@ -56,6 +36,7 @@ typedef struct
   int max;
 } Threshold_TypeDef;
 
+
 typedef struct
 {
   DHT_DataTypedef dhtPolledData;
@@ -63,26 +44,22 @@ typedef struct
   Threshold_TypeDef hum_Struct;
 } ControlTempParams;
 
-void pull_dht_data(float *temp, float *hum)
-{
-  DHT_GetData(&DHT11_Data);
-  *temp = DHT11_Data.Temperature;
-  *hum = DHT11_Data.Humidity;
-}
 
-float buffer[2];
+//void pull_dht_data(DHT_DataTypedef *DHT11_Data)
+//{
+//  DHT_GetData(DHT11_Data);
+////  *temp = DHT11_Data.Temperature;
+////  *hum = DHT11_Data.Humidity;
+//}
+
+
 
 // Agregar un buffer sin condiciones de carrera para esto
-void vPollDHT(float *buffer)
-{
+//void vPollDHT(DHT_DataTypedef *data_struct)
+//{
+//  pull_dht_data(data_struct);
+//}
 
-//  LED_blinky(ledGreen, 1, 1, 2);
-
-  pull_dht_data(&temp, &hum);
-
-  buffer[0] = temp;
-  buffer[1] = hum;
-}
 
 void vSendDataThingSpeak(float *buffer)
 {
@@ -102,8 +79,9 @@ void vRefreshWebserver(float *buffer)
 
   Server_Start();
 
-  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS( 2500 ));
+  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS( 4000 ));
 }
+
 
 void vSetTemp(int Value)
 {
@@ -111,8 +89,9 @@ void vSetTemp(int Value)
   sprintf(buffer, "do=setTemp,%d.\r\n", Value);
 
   // Implement this
-  Uart_sendstring(buffer, &uart_command);
+  Uart_sendstring(buffer, uart_command);
 }
+
 
 void vSetHum(int Value)
 {
@@ -120,13 +99,15 @@ void vSetHum(int Value)
   sprintf(buffer, "do=setHum,%d.\r\n", Value);
 
   // Implement this
-  Uart_sendstring(buffer, &uart_command);
+  Uart_sendstring(buffer, uart_command);
 }
 
-void vControlTempHum(ControlTempParams *param1)
+
+void vControlTempHum(void *ptr)
 {
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
+  ControlTempParams *param1 = (ControlTempParams *) ptr;
 
   // Temperature Control
 
@@ -190,18 +171,30 @@ void vControlTempHum(ControlTempParams *param1)
 void vTurnOn(){
   char buffer[20] = {0};
   sprintf(buffer, "do=turnon.\r\n");
-  Uart_sendstring(buffer, &uart_command);
+  Uart_sendstring(buffer, uart_command);
 
 }
 
 void vTurnOff(){
   char buffer[20] = {0};
   sprintf(buffer, "do=turnoff.\r\n");
-  Uart_sendstring(buffer, &uart_command);
+  Uart_sendstring(buffer, uart_command);
 
 }
 
-ControlTempParams *param1;
+
+
+void vTaskGetData (void *ptr) {
+
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+
+  DHT_DataTypedef *data_struct = (DHT_DataTypedef *) ptr;
+
+  DHT_GetData(data_struct);
+
+
+  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS( 6000 ));
+}
 
 int main(void)
 {
@@ -214,22 +207,31 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
+//  LED_Init();
+
+//  ESP_Init("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
+
+//  LED_on(ledBlue);
+
 
   MX_FREERTOS_Init();
 
-  Threshold_TypeDef temp;
-  Threshold_TypeDef hum;
+  static DHT_DataTypedef DHT11_Data = {0.0f};
+
+  ControlTempParams param1;
+
+  param1.temp_Struct.min = 5;
+  Uart_sendstring("HOlaaaA", uart_command);
 
 
-  xTaskCreate( vControlTempHum, "controlTemp", 1000, param1, 2, NULL);
-  xTaskCreate( vSendDataThingSpeak, "SendDataThingSpeak", 1000, &buffer, 1, NULL);
-  xTaskCreate( vRefreshWebserver, "RefreshWebserver", 1000, &buffer, 1, NULL);
+  xTaskCreate( vTaskGetData, "vTaskGetData", 1000, &DHT11_Data, 2, NULL);
+   xTaskCreate( vControlTempHum, "controlTemp", 1000, &param1, 1, NULL);
+//  xTaskCreate( vSendDataThingSpeak, "SendDataThingSpeak", 1000, &buffer, 1, NULL);
+//  xTaskCreate( vRefreshWebserver, "RefreshWebserver", 1000, &buffer, 1, NULL);
   vTaskStartScheduler();
 
-  while (1);
+  return 0;
 }
-
-
 
 /**
   * @brief System Clock Configuration
@@ -261,7 +263,8 @@ void SystemClock_Config(void)
   }
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -272,6 +275,10 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 }
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
@@ -288,7 +295,7 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
+#ifdef  USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

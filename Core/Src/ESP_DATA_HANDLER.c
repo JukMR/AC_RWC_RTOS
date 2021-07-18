@@ -325,14 +325,14 @@ void Server_Start (void)
 
 	else if (Look_for("/turnon", buftostoreheader) == 1)
 	{
-		LED_on(ledOrange);
+//		LED_on(ledOrange);
 
 		Server_Handle("/page1",Link_ID);
 	}
 
 	else if (Look_for("/turnoff", buftostoreheader) == 1)
 	{
-		LED_off(ledOrange);
+//		LED_off(ledOrange);
 		Server_Handle("/page1",Link_ID);
 	}
 

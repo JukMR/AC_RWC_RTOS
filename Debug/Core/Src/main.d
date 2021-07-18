@@ -46,7 +46,6 @@ Core/Src/main.o: ../Core/Src/main.c \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/usart.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/main.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/gpio.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/led.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESP_DATA_HANDLER.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESPDataLogger.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/DHT.h \
@@ -145,8 +144,6 @@ Core/Src/main.o: ../Core/Src/main.c \
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/main.h:
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/gpio.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/led.h:
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESP_DATA_HANDLER.h:
 
