@@ -185,7 +185,7 @@ void Uart_sendstring (const char *s, UART_HandleTypeDef *uart)
 {
 	// The multi original is
 	// while(*s!='\0') Uart_write(*s++, uart);
-	while(*s) Uart_write(*s++, uart);
+	while(*s!='\0') Uart_write(*s++, uart);
 }
 
 void Uart_printbase (long n, uint8_t base, UART_HandleTypeDef *uart)

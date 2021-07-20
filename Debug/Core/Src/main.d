@@ -26,7 +26,9 @@ Core/Src/main.o: ../Core/Src/main.c \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h \
+ /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/usart.h \
+ /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/main.h \
+ /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/gpio.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/FreeRTOSConfig.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h \
@@ -36,16 +38,6 @@ Core/Src/main.o: ../Core/Src/main.c \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/usart.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/main.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/gpio.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESP_DATA_HANDLER.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESPDataLogger.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/DHT.h \
@@ -106,7 +98,11 @@ Core/Src/main.o: ../Core/Src/main.c \
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h:
+/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/usart.h:
+
+/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/main.h:
+
+/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/gpio.h:
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 
@@ -125,26 +121,6 @@ Core/Src/main.o: ../Core/Src/main.c \
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/list.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/usart.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/main.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/gpio.h:
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESP_DATA_HANDLER.h:
 

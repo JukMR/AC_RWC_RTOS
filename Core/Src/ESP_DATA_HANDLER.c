@@ -33,8 +33,9 @@ extern UART_HandleTypeDef huart2;
 char buffer[20];
 
 controlData param;
-
-char *home_start = "<!DOCTYPE html>\n\
+char *home_header =
+"\n\
+<!DOCTYPE html>\n\
 <html lang=\'en\'>\n\
 \n\
 <head>\n\
@@ -47,7 +48,6 @@ char *home_start = "<!DOCTYPE html>\n\
     <div style=\"text-align: center;\">\n\
 \n\
         <h1> Servidor Esp8266 con DHT11</h1>\n\
-\n\
         <div>\n\
 \n\
             <h2> Encendido/Apagado</h2>\n\
@@ -55,30 +55,35 @@ char *home_start = "<!DOCTYPE html>\n\
             &nbsp;&nbsp;\n\
             <button onclick=location.href=\"turnoff\"> Apagar AC </button>\n\
 \n\
-        </div>\n\
-\n\
-        <div>\n\
+        </div>";
+
+
+char *home_values =
+
+    "<div>\n\
+            <h2>Temperatura actual: 20</h2>\n\
+            <h2>Humedad actual es: 20</h2>\n\
+        </div>";
+
+char *home_tail =
+
+		"<form action=\"/setForm\">\n\
             <h2> Elegir temperatura </h2>\n\
-            <form action=\"store.html\">\n\
-                <label for=\"temp\"> Temperatura: </label>\n\
-                <input type=\"text\" id=\"temp\" name=\"temp\" value=\"\"> <br> </br>\n\
-            </form>\n\
-        </div>\n\
+            <label for=\"temp\"> Temperatura: </label>\n\
+            <input type=\"text\" id=\"idSetTemp\" name=\"setTemp\" value=\"\"> <br> </br>\n\
 \n\
-        <div>\n\
             <h2> Elegir humedad </h2>\n\
-            <form action=\"store.html\">\n\
-                <label for=\"hum\"> Humedad: </label>\n\
-                <input type=\"text\" id=\"hum\" name=\"hum\" value=\"\"> <br> </br>\n\
-            </form>\n\
-        </div>\n\
+            <label for=\"hum\"> Humedad: </label>\n\
+            <input type=\"text\" id=\"idSetHum\" name=\"setHum\" value=\"\"> <br> </br>\n\
+            <input type=\"submit\" value=\"Set Values\">\n\
 \n\
+        </form>\n\
 \n\
         <h2>Elegir rangos</h2>\n\
-        <form action=\"/page1\">\n\
+        <form action=\"/setRange\">\n\
 \n\
             <p> Temperature Range </p>\n\
-            <i>(Value between -50 and 100)</i><br></br>\n\
+            <i>(Value between 0 and 50)</i><br></br>\n\
 \n\
             <label for=\"minTemp\">Minimum:</label>\n\
             <input type=\"text\" id=\"minTemp\" name=\"minTemp\" value=\"\"><br></br>\n\
@@ -88,18 +93,18 @@ char *home_start = "<!DOCTYPE html>\n\
 \n\
 \n\
             <p> Humidity Range </p>\n\
-            <i>(Value between 0 and 100)</i><br></br>\n\
+            <i>(Value between 5 and 95)</i><br></br>\n\
 \n\
             <label for=\"minHum\">Minimum:</label>\n\
             <input type=\"text\" id=\"minHum\" name=\"minHum\" value=\"\"><br></br>\n\
 \n\
             <label for=\"maxHum\">Maximum:</label>\n\
             <input type=\"text\" id=\"maxHum\" name=\"maxHum\" value=\"\"><br><br>\n\
-            <input type=\"submit\" value=\"Submit\">\n\
+            <input type=\"submit\" value=\"Set Ranges\">\n\
 \n\
-        </form><br><br>\n";
-
-char * home_end ="  <button onclick=location.href=\"https://thingspeak.com/channels/1439978\"> Watch thingSpeak data</button> <br>\n\
+        </form><br><br>\n\
+\n\
+        <button onclick=location.href=\"https://thingspeak.com/channels/1439978\"> Watch thingSpeak data</button> <br>\n\
         <br>\n\
 \n\
         <div>\n\
@@ -112,27 +117,34 @@ char * home_end ="  <button onclick=location.href=\"https://thingspeak.com/chann
 </body>\n\
 </html>";
 
-	char *page1 = "<!DOCTYPE html>\n\
+
+	char *receiveCommand =
+
+			"<!DOCTYPE html>\n\
 <html>\n\
-\n\
 <body>\n\
     <div style=\"text-align: center;\">\n\
         <h1 style=\"text-align: center;\"> Servidor Esp8266 con DHT11</h1>\n\
-\n\
         <h2> Command send successfully </h2>\n\
         <p> Click below to return the main page</p>\n\
-        <form action=\"main.html\" style=\"text-align: center;\">\n\
-            <input type=\"submit\" value=\"Go back\">\n\
-        </form><br><br>\n\
-\n\
+        <button onclick=location.href=\"main\"> Go back </button>\n\
     </div>\n\
-\n\
 </body>\n\
-\n\
 </html>";
 
 
 
+	char * error =
+			"<!DOCTYPE html>\n\
+			<html>\n\
+			<body>\n\
+			    <div>\n\
+			        <p>\n\
+			            Error\n\
+			        </p>\n\
+			    </div>\n\
+			</body>\n\
+			</html>";
 
 /*****************************************************************************************************************************************/
 
@@ -178,7 +190,6 @@ void ESP_Init (char *SSID, char *PASSWD, char *STAIP)
 	Uart_flush(wifi_uart);
 	Uart_sendstring("AT+CIPSERVER=1,80\r\n", wifi_uart);
 	while (!(Wait_for("OK\r\n", wifi_uart)));
-
 }
 
 
@@ -201,19 +212,32 @@ int Server_Send (char *str, int Link_ID)
 	return 1;
 }
 
-int Server_Send_main (char *start, char *end, int Link_ID)
+int Server_Send_main (char *start, char *body, char *end, int Link_ID)
 {
 	int lenStart = strlen (start);
-	int lenEnd = strlen(end);
 	char data[80];
+
 	Uart_flush(wifi_uart);
 	sprintf (data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenStart);
 	Uart_sendstring(data, wifi_uart);
 	while (!(Wait_for(">", wifi_uart)));
 	Uart_sendstring (start, wifi_uart);
 	while (!(Wait_for("SEND OK", wifi_uart)));
-	Uart_flush(wifi_uart);
 
+
+	/* param processing part */
+	Uart_flush(wifi_uart);
+	int lenBody = strlen(body);
+	sprintf (data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenBody);
+	Uart_sendstring(data, wifi_uart);
+	while (!(Wait_for(">", wifi_uart)));
+	Uart_sendstring (body, wifi_uart);
+	while (!(Wait_for("SEND OK", wifi_uart)));
+
+
+	/* end processing part */
+	Uart_flush(wifi_uart);
+	int lenEnd = strlen(end);
 	sprintf (data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenEnd);
 	Uart_sendstring(data, wifi_uart);
 	while (!(Wait_for(">", wifi_uart)));
@@ -230,9 +254,10 @@ int Server_Send_main (char *start, char *end, int Link_ID)
 void Server_Handle (char *str, int Link_ID)
 {
 	char datatosend[4096] = {0};
-	if (!(strcmp (str, "/page1")))
+
+	if (!(strcmp (str, "/receiveCommand")))
 	{
-		sprintf(datatosend, page1);
+		sprintf(datatosend, receiveCommand);
 		Server_Send(datatosend, Link_ID);
 	}
 
@@ -251,11 +276,32 @@ void Server_Handle (char *str, int Link_ID)
 //		strcat(datatosend, page2_end);
 //		Server_Send(datatosend, Link_ID);
 //	}
+
+	else if (!(strcmp (str, "/setForm")))
+	{
+		sprintf(datatosend, receiveCommand);
+		Server_Send(datatosend, Link_ID);
+//		Server_Send_main(home_header, home_values,  home_tail,  Link_ID);
+	}
+
+	else if (!(strcmp (str, "/setRange")))
+	{
+		sprintf(datatosend, receiveCommand);
+		Server_Send(datatosend, Link_ID);
+	}
+
+	else if (!(strcmp (str, "/main")))
+	{
+//		sprintf(datatosend, receiveCommand);
+		Server_Send_main(home_header, home_values,  home_tail,  Link_ID);
+	}
+
 	else
 	{
 
-//		sprintf (datatosend, buffer);
-		Server_Send_main(home_start, home_end,  Link_ID);
+		/* I think we should not reach here */
+		sprintf(datatosend, error);
+		Server_Send(datatosend, Link_ID);
 
 	}
 
@@ -294,10 +340,6 @@ static void Handle_controlData(controlData *tmp, controlData *param) {
 
 void Server_Start (void)
 {
-	extern void *ledOrange;
-	extern void LED_on(void *led);
-	extern void LED_off(void *led);
-
 	char buftostoreheader[128] = {0};
 	char Link_ID;
 	while (!(Get_after("+IPD,", 1, &Link_ID, wifi_uart)));
@@ -306,59 +348,84 @@ void Server_Start (void)
 	while (!(Copy_upto(" HTTP/1.1", buftostoreheader, wifi_uart)));
 
 	controlData paramTmp = {0};
+	char setTemp[5] = {0};
+	char setHum[5] = {0};
 
 
-	if (Look_for("/page1", buftostoreheader) == 1)
+
+	if (Look_for("/setForm", buftostoreheader) == 1)
+	{
+		GetDataFromBuffer("setTemp=", "&", buftostoreheader, setTemp);
+		GetDataFromBuffer("setHum=", "HTTP", buftostoreheader, setHum);
+
+		Server_Handle("/setForm", Link_ID);
+	}
+
+	else if (Look_for("/setRange", buftostoreheader) == 1)
 	{
 		GetDataFromBuffer("minTemp=", "&", buftostoreheader, paramTmp.minTemp);
 		GetDataFromBuffer("maxTemp=", "&", buftostoreheader, paramTmp.maxTemp);
 		GetDataFromBuffer("minHum=", "&", buftostoreheader, paramTmp.minHum);
 		GetDataFromBuffer("maxHum=", " HTTP", buftostoreheader, paramTmp.maxHum);
 		Handle_controlData(&paramTmp, &param);
-		Server_Handle("/page1",Link_ID);
+
+		Server_Handle("/setRange", Link_ID);
 	}
 
-	else if (Look_for("/home", buftostoreheader) == 1)
+
+
+	else if (Look_for("/main", buftostoreheader) == 1)
 	{
-		Server_Handle("/home",Link_ID);
+		Server_Handle("/main",Link_ID);
 	}
 
+
+
+	/* Turn on and off command */
 	else if (Look_for("/turnon", buftostoreheader) == 1)
 	{
-//		LED_on(ledOrange);
 
-		Server_Handle("/page1",Link_ID);
+		Uart_sendstring("do=turnon.\r\n", device_uart);
+		Server_Handle("/receiveCommand", Link_ID);
 	}
 
 	else if (Look_for("/turnoff", buftostoreheader) == 1)
 	{
-//		LED_off(ledOrange);
-		Server_Handle("/page1",Link_ID);
+
+		Uart_sendstring("do=turnoff.\r\n", device_uart);
+		Server_Handle("/receiveCommand", Link_ID);
 	}
 
+
+
+
+	/* Special buttons */
 	else if (Look_for("/special1", buftostoreheader) == 1)
 	{
 		// send special1 uart com
-		Server_Handle("/page1",Link_ID);;
+		Uart_sendstring("do=special1.\r\n", device_uart);
+		Server_Handle("/receiveCommand", Link_ID);;
 	}
 
 	else if (Look_for("/special2", buftostoreheader) == 1)
 	{
 		// send special2 uart com
-		Server_Handle("/page1",Link_ID);
+		Uart_sendstring("do=special2.\r\n", device_uart);
+		Server_Handle("/receiveCommand", Link_ID);
 	}
 
 	else if (Look_for("/special3", buftostoreheader) == 1)
 	{
 		// send special3 uart com
-		Server_Handle("/page1",Link_ID);
+		Uart_sendstring("do=special3.\r\n", device_uart);
+		Server_Handle("/receiveCommand", Link_ID);
 	}
 
 	else if (Look_for("/favicon.ico", buftostoreheader) == 1);
 
 	else
 	{
-		Server_Handle("/ ", Link_ID);
+		Server_Handle("/main", Link_ID);
 	}
 }
 

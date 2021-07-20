@@ -19,7 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
+//#include "cmsis_os.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -40,6 +40,7 @@
 
 #include "led.h"
 
+#define wifi_uart &huart1
 #define uart_command &huart2
 
 /* USER CODE END Includes */
@@ -92,24 +93,41 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void vSendDataThingSpeak(float *buffer)
+void vSendDataThingSpeakTask(void *pvParameters)
 {
+  uint8_t buffer[2] = {0,0};
+  DHT_DataTypedef *tmp;
 
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
-  ESP_Send_Multi("U6123BFR6YNW5I4V", 2, buffer);
 
-  // wait 15s between sends
-  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(15000));
+  for (;;)
+  {
+
+    tmp = (DHT_DataTypedef *)pvParameters;
+
+    buffer[0] = tmp->Temperature;
+    buffer[1] = tmp->Humidity;
+
+    buffer[0] = 30;
+    buffer[1] = 40;
+
+    ESP_Send_Multi("U6123BFR6YNW5I4V", 2, buffer);
+
+    // wait 15s between sends
+    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(15000));
+  }
 }
 
-void vRefreshWebserver(float *buffer)
+void vRefreshWebserverTask(void * pvParameters)
 {
-  TickType_t xLastWakeTime = xTaskGetTickCount();
+//  TickType_t xLastWakeTime = xTaskGetTickCount();
 
-  Server_Start();
+  for (;;) {
+	  Server_Start();
 
-  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(4000));
+//	  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(4000));
+  }
 }
 
 void vSetTemp(int Value)
@@ -132,9 +150,10 @@ void vSetHum(int Value)
 
 void vControlTempHum(void *ptr)
 {
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+
   for (;;)
   {
-    TickType_t xLastWakeTime = xTaskGetTickCount();
 
     ControlTempParams *param1 = (ControlTempParams *)ptr;
 
@@ -215,23 +234,18 @@ void vTurnOff()
 void vTaskGetDataDHT(void *ptr)
 {
 
-char buf[30];
-char *many;
+  char buf[30];
+  TickType_t xLastWakeTime = xTaskGetTickCount();
 
   for (;;)
   {
-    TickType_t xLastWakeTime;
-
-    xLastWakeTime = xTaskGetTickCount();
 
     DHT_DataTypedef *data_struct = (DHT_DataTypedef *)ptr;
-
     DHT_GetData(data_struct);
-
 
     sprintf(buf, "Temp: %d, Hum:%d\r\n", (int)data_struct->Temperature, (int)data_struct->Humidity);
 
-
+    /* Improve this somehow */
     Uart_sendstring(buf, uart_command);
 
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(6000));
@@ -270,21 +284,19 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
-  MX_USART6_UART_Init();
 
+//  MX_USART6_UART_Init();
 
   /* USER CODE BEGIN 2 */
 
-  LED_Init();
+//  LED_Init();
 
-  LED_on(ledOrange);
+//  LED_on(ledOrange);
 
   /* Initialize Uart library */
-  Ringbuf_init();
+  //  Ringbuf_init();
 
-  static DHT_DataTypedef DHT11_Data = {0.0f};
-
-
+  ESP_Init("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
 
   /* USER CODE END 2 */
 
@@ -293,15 +305,30 @@ int main(void)
   /* Start scheduler */
   //  osKernelStart();
 
-  ControlTempParams param1 = {0};
+  ControlTempParams param1;
 
+  param1.dhtPolledData.Humidity = 10;
+  param1.dhtPolledData.Temperature = 10;
 
   param1.temp_Struct.min = 5;
+  param1.temp_Struct.max =20;
+  param1.temp_Struct.thresholdSet = true;
+  param1.temp_Struct.valueSet = false;
 
-  xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &param1.dhtPolledData, 2, NULL);
-  xTaskCreate(vControlTempHum, "controlTemp", 1000, &param1, 1, NULL);
-  //  xTaskCreate( vSendDataThingSpeak, "SendDataThingSpeak", 1000, &buffer, 1, NULL);
-  //  xTaskCreate( vRefreshWebserver, "RefreshWebserver", 1000, &buffer, 1, NULL);
+
+  param1.hum_Struct.min = 80;
+  param1.hum_Struct.max = 95;
+  param1.temp_Struct.thresholdSet = true;
+  param1.hum_Struct.valueSet = false;
+
+  while(1) {
+	  vRefreshWebserverTask( NULL);
+  }
+
+//  xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &param1.dhtPolledData, 3, NULL);
+//  xTaskCreate(vControlTempHum, "controlTemp", 1000, &param1, 2, NULL);
+//  xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 1000, &param1.dhtPolledData, 1, NULL);
+//    xTaskCreate( vRefreshWebserverTask, "RefreshWebserver", 1200, NULL, 1, NULL);
   vTaskStartScheduler();
 
   /* We should never get here as control is now taken by the scheduler */

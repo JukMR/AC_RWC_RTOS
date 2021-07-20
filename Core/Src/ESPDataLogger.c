@@ -93,7 +93,7 @@ void ESP_Send_Data (char *APIkey, int Field_num, uint16_t value)
 
 }
 
-void ESP_Send_Multi (char *APIkey, int numberoffileds, float value[])
+void ESP_Send_Multi (char *APIkey, int numberoffileds, uint8_t value[])
 {
 	char local_buf[500] = {0};
 	char local_buf2[30] = {0};
@@ -109,7 +109,7 @@ void ESP_Send_Multi (char *APIkey, int numberoffileds, float value[])
 	sprintf (local_buf, "GET /update?api_key=%s", APIkey);
 	for (int i=0; i<numberoffileds; i++)
 	{
-		sprintf(field_buf, "&field%d=%f",i+1, value[i]);
+		sprintf(field_buf, "&field%d=%u", i+1, value[i]);
 		strcat (local_buf, field_buf);
 	}
 
