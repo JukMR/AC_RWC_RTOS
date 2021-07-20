@@ -96,7 +96,7 @@ void SystemClock_Config(void);
 void vSendDataThingSpeakTask(void *pvParameters)
 {
   uint8_t buffer[2] = {0,0};
-  DHT_DataTypedef *tmp;
+//  DHT_DataTypedef *tmp;
 
 //  TickType_t xLastWakeTime = xTaskGetTickCount();
   buffer[0] = 0;
@@ -115,10 +115,11 @@ void vSendDataThingSpeakTask(void *pvParameters)
     buffer[1]++;
     ESP_Send_Multi("U6123BFR6YNW5I4V", 2, buffer);
 
-    HAL_Delay(15000);
+//    HAL_Delay(15000);
 
-    // wait 15s between sends
-//    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(15000));
+//     wait 15s between sends
+    vTaskDelay( pdMS_TO_TICKS(15000) );
+
   }
 }
 
@@ -328,11 +329,10 @@ int main(void)
   param1.hum_Struct.valueSet = false;
 
 
-  vSendDataThingSpeakTask( NULL);
 
 //  xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &param1.dhtPolledData, 3, NULL);
 //  xTaskCreate(vControlTempHum, "controlTemp", 1000, &param1, 2, NULL);
-//  xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 1000, &param1.dhtPolledData, 1, NULL);
+  xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 1000, &param1.dhtPolledData, 1, NULL);
 //  xTaskCreate( vRefreshWebserverTask, "RefreshWebserver", 1200, NULL, 1, NULL);
   vTaskStartScheduler();
 
