@@ -338,6 +338,19 @@ static void Handle_controlData(controlData *tmp, controlData *param) {
 
 }
 
+
+static void setValue(char *str, char *value) {
+	char buff[30] = {0};
+	sprintf(buff, "%s%s.\r\n", str, value);
+	Uart_sendstring(buff, device_uart);
+}
+
+static void setRanges(char *str, char *minArg, char *maxArg ) {
+	char buff[30] = {0};
+	sprintf(buff, "%s%s,%s.\r\n", str, minArg, maxArg);
+	Uart_sendstring(buff, device_uart);
+}
+
 void Server_Start (void)
 {
 	char buftostoreheader[128] = {0};
@@ -358,6 +371,18 @@ void Server_Start (void)
 		GetDataFromBuffer("setTemp=", "&", buftostoreheader, setTemp);
 		GetDataFromBuffer("setHum=", "HTTP", buftostoreheader, setHum);
 
+		/* Set temp */
+		setValue("do=settemp,", setTemp);
+		// char buff[30] = {0};
+		// sprintf(buff, "do=settemp,%s.\r\n", setTemp);
+		// Uart_sendstring(buff, device_uart);
+
+		/* Set hum */
+		setValue("do=sethum,", setHum);
+		// memset(buff, 0, sizeof(buff));
+		// sprintf(buff, "do=sethum,%s.\r\n", setHum);
+		// Uart_sendstring(buff, device_uart);
+
 		Server_Handle("/setForm", Link_ID);
 	}
 
@@ -368,6 +393,13 @@ void Server_Start (void)
 		GetDataFromBuffer("minHum=", "&", buftostoreheader, paramTmp.minHum);
 		GetDataFromBuffer("maxHum=", " HTTP", buftostoreheader, paramTmp.maxHum);
 		Handle_controlData(&paramTmp, &param);
+
+		/* Set temp range */
+		setRanges("do=temprange,", param.minTemp, param.maxTemp);
+
+
+		/* Set hum range */
+		setRanges("do=humrange,", param.minHum, param.maxHum);
 
 		Server_Handle("/setRange", Link_ID);
 	}

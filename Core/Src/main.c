@@ -305,13 +305,14 @@ int main(void)
   /* Start scheduler */
   //  osKernelStart();
 
+  /* Initialize some params */
   ControlTempParams param1;
 
   param1.dhtPolledData.Humidity = 10;
   param1.dhtPolledData.Temperature = 10;
 
   param1.temp_Struct.min = 5;
-  param1.temp_Struct.max =20;
+  param1.temp_Struct.max = 20;
   param1.temp_Struct.thresholdSet = true;
   param1.temp_Struct.valueSet = false;
 
