@@ -98,24 +98,27 @@ void vSendDataThingSpeakTask(void *pvParameters)
   uint8_t buffer[2] = {0,0};
   DHT_DataTypedef *tmp;
 
-  TickType_t xLastWakeTime = xTaskGetTickCount();
-
+//  TickType_t xLastWakeTime = xTaskGetTickCount();
+  buffer[0] = 0;
+  buffer[1] = 10;
 
   for (;;)
   {
 
-    tmp = (DHT_DataTypedef *)pvParameters;
+//    tmp = (DHT_DataTypedef *)pvParameters;
 
-    buffer[0] = tmp->Temperature;
-    buffer[1] = tmp->Humidity;
+//    buffer[0] = tmp->Temperature;
+//    buffer[1] = tmp->Humidity;
 
-    buffer[0] = 30;
-    buffer[1] = 40;
 
+    buffer[0]++;
+    buffer[1]++;
     ESP_Send_Multi("U6123BFR6YNW5I4V", 2, buffer);
 
+    HAL_Delay(15000);
+
     // wait 15s between sends
-    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(15000));
+//    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(15000));
   }
 }
 
@@ -296,7 +299,9 @@ int main(void)
   /* Initialize Uart library */
   //  Ringbuf_init();
 
-  ESP_Init("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
+   ESP_Init("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
+
+//  ESP_Init_datalogger("Diagon Alley 2.4GHz", "hayunboggartenlaalacena");
 
   /* USER CODE END 2 */
 
@@ -322,14 +327,13 @@ int main(void)
   param1.temp_Struct.thresholdSet = true;
   param1.hum_Struct.valueSet = false;
 
-  while(1) {
-	  vRefreshWebserverTask( NULL);
-  }
+
+  vSendDataThingSpeakTask( NULL);
 
 //  xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &param1.dhtPolledData, 3, NULL);
 //  xTaskCreate(vControlTempHum, "controlTemp", 1000, &param1, 2, NULL);
 //  xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 1000, &param1.dhtPolledData, 1, NULL);
-//    xTaskCreate( vRefreshWebserverTask, "RefreshWebserver", 1200, NULL, 1, NULL);
+//  xTaskCreate( vRefreshWebserverTask, "RefreshWebserver", 1200, NULL, 1, NULL);
   vTaskStartScheduler();
 
   /* We should never get here as control is now taken by the scheduler */
