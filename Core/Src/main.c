@@ -30,6 +30,7 @@
 #include "stdbool.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 
 #include "ESP_DATA_HANDLER.h"
 #include "ESPDataLogger.h"
@@ -47,21 +48,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct
-{
-  bool valueSet;
-  int value;
-  bool thresholdSet;
-  int min;
-  int max;
-} Threshold_TypeDef;
-
-typedef struct
-{
-  DHT_DataTypedef dhtPolledData;
-  Threshold_TypeDef temp_Struct;
-  Threshold_TypeDef hum_Struct;
-} ControlTempParams;
 
 /* USER CODE END PTD */
 
@@ -81,6 +67,9 @@ void *ledRed;
 void *ledBlue;
 void *ledOrange;
 void *ledGreen;
+
+SemaphoreHandle_t xMutex;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -95,42 +84,40 @@ void SystemClock_Config(void);
 
 void vSendDataThingSpeakTask(void *pvParameters)
 {
-  uint8_t buffer[2] = {0,0};
-//  DHT_DataTypedef *tmp;
 
-//  TickType_t xLastWakeTime = xTaskGetTickCount();
-  buffer[0] = 0;
-  buffer[1] = 10;
+  uint8_t buffer[2];
+  DHT_DataTypedef *tmp;
 
   for (;;)
   {
+    //xSemaphoreTake(xMutex, portMAX_DELAY);
+    tmp = (DHT_DataTypedef *)pvParameters;
 
-//    tmp = (DHT_DataTypedef *)pvParameters;
+    buffer[0] = tmp->Temperature;
+    buffer[1] = tmp->Humidity;
 
-//    buffer[0] = tmp->Temperature;
-//    buffer[1] = tmp->Humidity;
-
-
-    buffer[0]++;
-    buffer[1]++;
     ESP_Send_Multi("U6123BFR6YNW5I4V", 2, buffer);
 
-//    HAL_Delay(15000);
-
-//     wait 15s between sends
-    vTaskDelay( pdMS_TO_TICKS(15000) );
-
+    //xSemaphoreGive(xMutex);
+    /* wait 15s between sends */
+    vTaskDelay(pdMS_TO_TICKS(15000));
   }
 }
 
-void vRefreshWebserverTask(void * pvParameters)
+void vRefreshWebserverTask(void *pvParameters)
 {
-//  TickType_t xLastWakeTime = xTaskGetTickCount();
+	ControlTempParams *control;
 
-  for (;;) {
-	  Server_Start();
+  for (;;)
+  {
+    control = (ControlTempParams *)pvParameters;
+    //xSemaphoreTake(xMutex, portMAX_DELAY);
 
-//	  vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(4000));
+    Server_Start(control);
+
+//    vTaskDelay(pdMS_TO_TICKS(500));
+
+    //xSemaphoreGive(xMutex);
   }
 }
 
@@ -152,72 +139,73 @@ void vSetHum(int Value)
   Uart_sendstring(buffer, uart_command);
 }
 
-void vControlTempHum(void *ptr)
+void vControlTempHum(void *pvParameters)
 {
   TickType_t xLastWakeTime = xTaskGetTickCount();
+  ControlTempParams *param;
 
   for (;;)
   {
-
-    ControlTempParams *param1 = (ControlTempParams *)ptr;
+    // xSemaphoreTake( xMutex, portMAX_DELAY );
+    param = (ControlTempParams *)pvParameters;
 
     // Temperature Control
 
     // Threshold activated
-    if (param1->temp_Struct.thresholdSet)
+    if (param->temp_Struct.thresholdSet)
     {
 
       // temperature is lower than threshold
-      if (param1->dhtPolledData.Temperature < param1->temp_Struct.min)
+      if (param->dhtPolledData.Temperature < param->temp_Struct.min)
       {
-        vSetTemp(param1->temp_Struct.max);
+        vSetTemp(param->temp_Struct.max);
 
         // temperature is higher than threshold
       }
-      else if (param1->dhtPolledData.Temperature > param1->temp_Struct.max)
+      else if (param->dhtPolledData.Temperature > param->temp_Struct.max)
       {
-        vSetTemp(param1->temp_Struct.min);
+        vSetTemp(param->temp_Struct.min);
       }
 
       // temperature value set
     }
-    else if (param1->temp_Struct.valueSet)
+    else if (param->temp_Struct.valueSet)
     {
-      if (param1->dhtPolledData.Temperature != param1->temp_Struct.value)
+      if (param->dhtPolledData.Temperature != param->temp_Struct.value)
       {
-        vSetTemp(param1->temp_Struct.value);
+        vSetTemp(param->temp_Struct.value);
       }
     }
 
     // Humidity Control
 
     // Threshold activated
-    if (param1->hum_Struct.thresholdSet)
+    if (param->hum_Struct.thresholdSet)
     {
 
       // temperature is lower than threshold
-      if (param1->dhtPolledData.Humidity < param1->hum_Struct.min)
+      if (param->dhtPolledData.Humidity < param->hum_Struct.min)
       {
-        vSetHum(param1->hum_Struct.max);
+        vSetHum(param->hum_Struct.max);
 
         // temperature is higher than threshold
       }
-      else if (param1->dhtPolledData.Humidity > param1->hum_Struct.max)
+      else if (param->dhtPolledData.Humidity > param->hum_Struct.max)
       {
-        vSetHum(param1->hum_Struct.min);
+        vSetHum(param->hum_Struct.min);
       }
 
       // temperature value set
     }
-    else if (param1->hum_Struct.valueSet)
+    else if (param->hum_Struct.valueSet)
     {
-      if (param1->dhtPolledData.Humidity != param1->hum_Struct.value)
+      if (param->dhtPolledData.Humidity != param->hum_Struct.value)
       {
-        vSetHum(param1->hum_Struct.value);
+        vSetHum(param->hum_Struct.value);
       }
     }
-
-    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(3000));
+    // xSemaphoreGive( xMutex);
+    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(7000));
   }
 }
 
@@ -235,24 +223,28 @@ void vTurnOff()
   Uart_sendstring(buffer, uart_command);
 }
 
-void vTaskGetDataDHT(void *ptr)
+void vTaskGetDataDHT(void *pvParameters)
 {
 
   char buf[30];
   TickType_t xLastWakeTime = xTaskGetTickCount();
+  DHT_DataTypedef *data_struct;
 
   for (;;)
   {
+    //xSemaphoreTake(xMutex, portMAX_DELAY);
 
-    DHT_DataTypedef *data_struct = (DHT_DataTypedef *)ptr;
+    data_struct = (DHT_DataTypedef *)pvParameters;
     DHT_GetData(data_struct);
 
-    sprintf(buf, "Temp: %d, Hum:%d\r\n", (int)data_struct->Temperature, (int)data_struct->Humidity);
+    sprintf(buf, "Temp: %u, Hum:%u\r\n", data_struct->Temperature, data_struct->Humidity);
 
     /* Improve this somehow */
     Uart_sendstring(buf, uart_command);
 
-    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(6000));
+    //xSemaphoreGive(xMutex);
+
+    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(3000));
   }
 }
 
@@ -289,20 +281,18 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
 
-//  MX_USART6_UART_Init();
+  //  MX_USART6_UART_Init();
 
   /* USER CODE BEGIN 2 */
 
-//  LED_Init();
+  //  LED_Init();
 
-//  LED_on(ledOrange);
+  //  LED_on(ledOrange);
 
   /* Initialize Uart library */
   //  Ringbuf_init();
 
-   ESP_Init("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
-
-//  ESP_Init_datalogger("Diagon Alley 2.4GHz", "hayunboggartenlaalacena");
+  ESP_Init("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
 
   /* USER CODE END 2 */
 
@@ -312,34 +302,47 @@ int main(void)
   //  osKernelStart();
 
   /* Initialize some params */
-  ControlTempParams param1;
+  static ControlTempParams param;
 
-  param1.dhtPolledData.Humidity = 10;
-  param1.dhtPolledData.Temperature = 10;
+  param.dhtPolledData.Humidity = 10;
+  param.dhtPolledData.Temperature = 10;
 
-  param1.temp_Struct.min = 5;
-  param1.temp_Struct.max = 20;
-  param1.temp_Struct.thresholdSet = true;
-  param1.temp_Struct.valueSet = false;
+  param.temp_Struct.min = 20;
+  param.temp_Struct.max = 40;
+  param.temp_Struct.thresholdSet = true;
+  param.temp_Struct.valueSet = false;
 
+  param.hum_Struct.min = 90;
+  param.hum_Struct.max = 95;
+  param.temp_Struct.thresholdSet = true;
+  param.hum_Struct.valueSet = false;
 
-  param1.hum_Struct.min = 80;
-  param1.hum_Struct.max = 95;
-  param1.temp_Struct.thresholdSet = true;
-  param1.hum_Struct.valueSet = false;
+  int res1, res2, res3, res4;
+  res1 = res2 = res3 = res4 = 0;
 
+  xMutex = xSemaphoreCreateMutex();
 
+  if (xMutex != NULL)
+  {
 
-//  xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &param1.dhtPolledData, 3, NULL);
-//  xTaskCreate(vControlTempHum, "controlTemp", 1000, &param1, 2, NULL);
-  xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 1000, &param1.dhtPolledData, 1, NULL);
-//  xTaskCreate( vRefreshWebserverTask, "RefreshWebserver", 1200, NULL, 1, NULL);
+//    res1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &param.dhtPolledData, 4, NULL);
+//    res2 = xTaskCreate(vControlTempHum, "controlTemp", 1000, &param, 2, NULL);
+    res3 = xTaskCreate(vRefreshWebserverTask, "RefreshWebserver", 1200, &param, 1, NULL);
+//    res4 = xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 500, &param.dhtPolledData, 3, NULL);
+  }
+
+  /* Check all task where created correctly */
+  if (!((1 == pdPASS) && (1 == pdPASS) && (res3 == pdPASS) && (1 == pdPASS)))
+  {
+    Error_Handler();
+  }
+
   vTaskStartScheduler();
 
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
+  for (;;)
   {
     /* USER CODE END WHILE */
 

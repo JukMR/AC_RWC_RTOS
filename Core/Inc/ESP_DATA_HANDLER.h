@@ -19,25 +19,35 @@
 #ifndef INC_ESP_DATA_HANDLER_H_
 #define INC_ESP_DATA_HANDLER_H_
 
-
-void ESP_Init (char *SSID, char *PASSWD, char *STAIP);
-void Server_Start (void);
-
-typedef struct
-{
-	char firstname[15];
-	char lastname[15];
-	char age[3];
-}userDetails;
-
+#include <stdbool.h>
+#include "DHT.h"
 
 typedef struct
 {
-	char minTemp[5];
-	char maxTemp[5];
-	char minHum[3];
-	char maxHum[3];
+	char minTemp[8];
+	char maxTemp[8];
+	char minHum[8];
+	char maxHum[8];
 }controlData;
 
+typedef struct
+{
+  bool valueSet;
+  int value;
+  bool thresholdSet;
+  int min;
+  int max;
+} Threshold_TypeDef;
+
+typedef struct
+{
+  DHT_DataTypedef dhtPolledData;
+  Threshold_TypeDef temp_Struct;
+  Threshold_TypeDef hum_Struct;
+} ControlTempParams;
+
+
+void ESP_Init (char *SSID, char *PASSWD, char *STAIP);
+void Server_Start (ControlTempParams *arg);
 
 #endif /* INC_ESP_DATA_HANDLER_H_ */

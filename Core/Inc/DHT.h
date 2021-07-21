@@ -8,6 +8,8 @@
 #ifndef DHT_H_
 #define DHT_H_
 
+#include <stdint.h>
+
 typedef struct
 {
 	uint8_t Temperature;

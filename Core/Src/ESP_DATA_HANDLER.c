@@ -16,8 +16,6 @@
   ******************************************************************************
 */
 
-
-
 #include "ESP_DATA_HANDLER.h"
 #include "UartRingbuffer.h"
 #include "stdio.h"
@@ -30,12 +28,10 @@ extern UART_HandleTypeDef huart2;
 #define wifi_uart &huart1
 #define device_uart &huart2
 
-char buffer[20];
+char buffer[64];
 
-controlData param;
 char *home_header =
-"\n\
-<!DOCTYPE html>\n\
+	"<!DOCTYPE html>\n\
 <html lang=\'en\'>\n\
 \n\
 <head>\n\
@@ -57,17 +53,16 @@ char *home_header =
 \n\
         </div>";
 
-
 char *home_values =
 
-    "<div>\n\
+	"<div>\n\
             <h2>Temperatura actual: 20</h2>\n\
             <h2>Humedad actual es: 20</h2>\n\
         </div>";
 
 char *home_tail =
 
-		"<form action=\"/setForm\">\n\
+	"<form action=\"/setForm\">\n\
             <h2> Elegir temperatura </h2>\n\
             <label for=\"temp\"> Temperatura: </label>\n\
             <input type=\"text\" id=\"idSetTemp\" name=\"setTemp\" value=\"\"> <br> </br>\n\
@@ -117,10 +112,9 @@ char *home_tail =
 </body>\n\
 </html>";
 
+char *receiveCommand =
 
-	char *receiveCommand =
-
-			"<!DOCTYPE html>\n\
+	"<!DOCTYPE html>\n\
 <html>\n\
 <body>\n\
     <div style=\"text-align: center;\">\n\
@@ -132,10 +126,8 @@ char *home_tail =
 </body>\n\
 </html>";
 
-
-
-	char * error =
-			"<!DOCTYPE html>\n\
+char *error =
+	"<!DOCTYPE html>\n\
 			<html>\n\
 			<body>\n\
 			    <div>\n\
@@ -148,9 +140,9 @@ char *home_tail =
 
 /*****************************************************************************************************************************************/
 
-void ESP_Init (char *SSID, char *PASSWD, char *STAIP)
+void ESP_Init(char *SSID, char *PASSWD, char *STAIP)
 {
-	char data[80];
+	char data[96];
 
 	Ringbuf_init();
 
@@ -160,8 +152,7 @@ void ESP_Init (char *SSID, char *PASSWD, char *STAIP)
 	/********* AT **********/
 	Uart_flush(wifi_uart);
 	Uart_sendstring("AT\r\n", wifi_uart);
-	while(!(Wait_for("OK\r\n", wifi_uart)));
-
+	while (!(Wait_for("OK\r\n", wifi_uart)));
 
 	/********* AT+CWMODE=1 **********/
 	Uart_flush(wifi_uart);
@@ -171,13 +162,13 @@ void ESP_Init (char *SSID, char *PASSWD, char *STAIP)
 	/* Set Static IP Address */
 	/********* AT+CWSTAIP=IPADDRESS **********/
 	Uart_flush(wifi_uart);
-	sprintf (data, "AT+CIPSTA=\"%s\"\r\n", STAIP);
+	sprintf(data, "AT+CIPSTA=\"%s\"\r\n", STAIP);
 	Uart_sendstring(data, wifi_uart);
 	while (!(Wait_for("OK\r\n", wifi_uart)));
 
 	/********* AT+CWJAP="SSID","PASSWD" **********/
 	Uart_flush(wifi_uart);
-	sprintf (data, "AT+CWJAP=\"%s\",\"%s\"\r\n", SSID, PASSWD);
+	sprintf(data, "AT+CWJAP=\"%s\",\"%s\"\r\n", SSID, PASSWD);
 	Uart_sendstring(data, wifi_uart);
 	while (!(Wait_for("OK\r\n", wifi_uart)));
 
@@ -192,108 +183,91 @@ void ESP_Init (char *SSID, char *PASSWD, char *STAIP)
 	while (!(Wait_for("OK\r\n", wifi_uart)));
 }
 
-
-
-
-int Server_Send (char *str, int Link_ID)
+int Server_Send(char *str, int Link_ID)
 {
-	int len = strlen (str);
-	char data[80];
+	int len = strlen(str);
+	char data[96];
 	Uart_flush(wifi_uart);
-	sprintf (data, "AT+CIPSEND=%d,%d\r\n", Link_ID, len);
+	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, len);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for(">", wifi_uart)));
-	Uart_sendstring (str, wifi_uart);
-	while (!(Wait_for("SEND OK", wifi_uart)));
+	while (!(Wait_for(">", wifi_uart)))
+		;
+	Uart_sendstring(str, wifi_uart);
+	while (!(Wait_for("SEND OK", wifi_uart)))
+		;
 	Uart_flush(wifi_uart);
-	sprintf (data, "AT+CIPCLOSE=%d\r\n",Link_ID);
+	sprintf(data, "AT+CIPCLOSE=%d\r\n", Link_ID);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for("OK\r\n", wifi_uart)));
+	while (!(Wait_for("OK\r\n", wifi_uart)))
+		;
 	return 1;
 }
 
-int Server_Send_main (char *start, char *body, char *end, int Link_ID)
+int Server_Send_main(char *start, char *end, int Link_ID, DHT_DataTypedef *dht_struct)
 {
-	int lenStart = strlen (start);
+	int lenStart = strlen(start);
 	char data[80];
+	char body[200];
 
 	Uart_flush(wifi_uart);
-	sprintf (data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenStart);
+	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenStart);
 	Uart_sendstring(data, wifi_uart);
 	while (!(Wait_for(">", wifi_uart)));
-	Uart_sendstring (start, wifi_uart);
+	Uart_sendstring(start, wifi_uart);
 	while (!(Wait_for("SEND OK", wifi_uart)));
-
 
 	/* param processing part */
 	Uart_flush(wifi_uart);
+
+	sprintf(body, "<div><h2>Temperatura actual: %u</h2><h2>Humedad actual es: %u</h2></div>", dht_struct->Temperature, dht_struct->Humidity);
 	int lenBody = strlen(body);
-	sprintf (data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenBody);
+	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenBody);
 	Uart_sendstring(data, wifi_uart);
 	while (!(Wait_for(">", wifi_uart)));
-	Uart_sendstring (body, wifi_uart);
+	Uart_sendstring(body, wifi_uart);
 	while (!(Wait_for("SEND OK", wifi_uart)));
-
 
 	/* end processing part */
 	Uart_flush(wifi_uart);
 	int lenEnd = strlen(end);
-	sprintf (data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenEnd);
+	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenEnd);
 	Uart_sendstring(data, wifi_uart);
 	while (!(Wait_for(">", wifi_uart)));
-	Uart_sendstring (end, wifi_uart);
+	Uart_sendstring(end, wifi_uart);
 	while (!(Wait_for("SEND OK", wifi_uart)));
 	Uart_flush(wifi_uart);
 
-	sprintf (data, "AT+CIPCLOSE=%d\r\n", Link_ID);
+	sprintf(data, "AT+CIPCLOSE=%d\r\n", Link_ID);
 	Uart_sendstring(data, wifi_uart);
 	while (!(Wait_for("OK\r\n", wifi_uart)));
 	return 1;
 }
 
-void Server_Handle (char *str, int Link_ID)
+void Server_Handle(char *str, int Link_ID, ControlTempParams *arg)
 {
 	char datatosend[4096] = {0};
 
-	if (!(strcmp (str, "/receiveCommand")))
+	if (!(strcmp(str, "/receiveCommand")))
 	{
 		sprintf(datatosend, receiveCommand);
 		Server_Send(datatosend, Link_ID);
 	}
 
-//	else if (!(strcmp (str, "/page2")))
-//	{
-//		char localbuf[2048];
-//		sprintf(datatosend, page2_Top);
-//		strcat (datatosend, table);
-//		int bufsize = (sizeofuser (user));
-//		for (int i=0; i<bufsize; i++)
-//		{
-//			sprintf (localbuf, "<tr><td>%s %s</td>	<td>%s</td></tr>",user[i].firstname,user[i].lastname,user[i].age);
-//			strcat (datatosend, localbuf);
-//		}
-//		strcat (datatosend, "</table>");
-//		strcat(datatosend, page2_end);
-//		Server_Send(datatosend, Link_ID);
-//	}
-
-	else if (!(strcmp (str, "/setForm")))
-	{
-		sprintf(datatosend, receiveCommand);
-		Server_Send(datatosend, Link_ID);
-//		Server_Send_main(home_header, home_values,  home_tail,  Link_ID);
-	}
-
-	else if (!(strcmp (str, "/setRange")))
+	else if (!(strcmp(str, "/setForm")))
 	{
 		sprintf(datatosend, receiveCommand);
 		Server_Send(datatosend, Link_ID);
 	}
 
-	else if (!(strcmp (str, "/main")))
+	else if (!(strcmp(str, "/setRange")))
 	{
-//		sprintf(datatosend, receiveCommand);
-		Server_Send_main(home_header, home_values,  home_tail,  Link_ID);
+		sprintf(datatosend, receiveCommand);
+		Server_Send(datatosend, Link_ID);
+	}
+
+	else if (!(strcmp(str, "/main")))
+	{
+		Server_Send_main(home_header, home_tail, Link_ID, &arg->dhtPolledData);
 	}
 
 	else
@@ -302,56 +276,62 @@ void Server_Handle (char *str, int Link_ID)
 		/* I think we should not reach here */
 		sprintf(datatosend, error);
 		Server_Send(datatosend, Link_ID);
-
 	}
-
 }
 
+static void strtoIntValue(char *str, int *value)
+{
 
-static void strtoIntValue (char *str, int *value) {
-
-    if ((strcmp(str, ""))) *value = atoi(str);
-
+	if ((strcmp(str, "")))
+		*value = atoi(str);
 }
 
-static void Handle_controlData(controlData *tmp, controlData *param) {
-    int minTemp, maxTemp, minHum, maxHum;
-    minTemp = maxTemp = minHum = maxHum = 999;
-
-    strtoIntValue(tmp->minTemp, &minTemp);
-    strtoIntValue(tmp->maxTemp, &maxTemp);
-    strtoIntValue(tmp->minHum, &minHum);
-    strtoIntValue(tmp->maxHum, &maxHum);
-
-
-    if ((minTemp >= -50) && (maxTemp <= 100) && (minTemp <= maxTemp)) {
-        // call change threshold function
-        sprintf(param->minTemp, "%d", minTemp);
-        sprintf(param->maxTemp, "%d", maxTemp);
-    }
-
-    if ((minHum >= 0) && (maxHum <= 100) && (minHum <= maxHum)) {
-        // call change threshold function
-        sprintf(param->minHum, "%d", minHum);
-        sprintf(param->maxHum, "%d", maxHum);
-    }
-
-}
-
-
-static void setValue(char *str, char *value) {
+static void setValue(char *str, char *value)
+{
 	char buff[30] = {0};
 	sprintf(buff, "%s%s.\r\n", str, value);
 	Uart_sendstring(buff, device_uart);
 }
 
-static void setRanges(char *str, char *minArg, char *maxArg ) {
+static void setRanges(char *str, uint8_t minArg, uint8_t maxArg)
+{
 	char buff[30] = {0};
-	sprintf(buff, "%s%s,%s.\r\n", str, minArg, maxArg);
+	sprintf(buff, "%s%u,%u.\r\n", str, minArg, maxArg);
 	Uart_sendstring(buff, device_uart);
 }
 
-void Server_Start (void)
+static void Handle_controlData(controlData *tmp, ControlTempParams *arg)
+{
+	int minTemp, maxTemp, minHum, maxHum;
+	minTemp = maxTemp = minHum = maxHum = 999;
+
+	strtoIntValue(tmp->minTemp, &arg->temp_Struct.min);
+	strtoIntValue(tmp->maxTemp, &arg->temp_Struct.min);
+	strtoIntValue(tmp->minHum, &arg->hum_Struct.min);
+	strtoIntValue(tmp->maxHum, &arg->hum_Struct.max);
+
+	if ((minTemp >= -50) && (maxTemp <= 100) && (minTemp <= maxTemp))
+	{
+		// call change threshold function
+		arg->temp_Struct.min = minTemp;
+		arg->temp_Struct.max = maxTemp;
+
+		/* Send temp range change command */
+		setRanges("do=temprange,", minTemp, maxTemp);
+	}
+
+	if ((minHum >= 0) && (maxHum <= 100) && (minHum <= maxHum))
+	{
+		// call change threshold function
+		arg->hum_Struct.min = minHum;
+		arg->hum_Struct.max = maxHum;
+
+		/* Send hum range change command */
+		setRanges("do=humrange,", minHum, maxHum);
+	}
+}
+
+void Server_Start(ControlTempParams *arg)
 {
 	char buftostoreheader[128] = {0};
 	char Link_ID;
@@ -361,110 +341,91 @@ void Server_Start (void)
 	while (!(Copy_upto(" HTTP/1.1", buftostoreheader, wifi_uart)));
 
 	controlData paramTmp = {0};
-	char setTemp[5] = {0};
-	char setHum[5] = {0};
-
-
+	char strTemp[5] = {0};
+	char strHum[5] = {0};
 
 	if (Look_for("/setForm", buftostoreheader) == 1)
 	{
-		GetDataFromBuffer("setTemp=", "&", buftostoreheader, setTemp);
-		GetDataFromBuffer("setHum=", "HTTP", buftostoreheader, setHum);
+		GetDataFromBuffer("setTemp=", "&", buftostoreheader, strTemp);
+		GetDataFromBuffer("setHum=", "HTTP", buftostoreheader, strHum);
 
-		/* Set temp */
-		setValue("do=settemp,", setTemp);
-		// char buff[30] = {0};
-		// sprintf(buff, "do=settemp,%s.\r\n", setTemp);
-		// Uart_sendstring(buff, device_uart);
+		if (strcmp(strTemp, " ") && ((char)strTemp[0] != '\0'))
+		{
+			/* Set temp */
+			setValue("do=settemp,", strTemp);
+			strtoIntValue(strTemp, &arg->temp_Struct.value);
+			arg->temp_Struct.valueSet = true;
+		}
 
-		/* Set hum */
-		setValue("do=sethum,", setHum);
-		// memset(buff, 0, sizeof(buff));
-		// sprintf(buff, "do=sethum,%s.\r\n", setHum);
-		// Uart_sendstring(buff, device_uart);
+		if (strcmp(strHum, " "))
+		{
+			/* Set hum */
+			setValue("do=sethum,", strHum);
+			strtoIntValue(strHum, &arg->hum_Struct.value);
+			arg->hum_Struct.valueSet = true;
+		}
 
-		Server_Handle("/setForm", Link_ID);
+		Server_Handle("/setForm", Link_ID, arg);
 	}
 
 	else if (Look_for("/setRange", buftostoreheader) == 1)
 	{
-		GetDataFromBuffer("minTemp=", "&", buftostoreheader, paramTmp.minTemp);
-		GetDataFromBuffer("maxTemp=", "&", buftostoreheader, paramTmp.maxTemp);
-		GetDataFromBuffer("minHum=", "&", buftostoreheader, paramTmp.minHum);
-		GetDataFromBuffer("maxHum=", " HTTP", buftostoreheader, paramTmp.maxHum);
-		Handle_controlData(&paramTmp, &param);
+		GetDataFromBuffer("minTemp=", "&", buftostoreheader, &paramTmp.minTemp);
+		GetDataFromBuffer("maxTemp=", "&", buftostoreheader, &paramTmp.maxTemp);
+		GetDataFromBuffer("minHum=", "&", buftostoreheader, &paramTmp.minHum);
+		GetDataFromBuffer("maxHum=", " HTTP", buftostoreheader, &paramTmp.maxHum);
+		Handle_controlData(&paramTmp, arg);
 
-		/* Set temp range */
-		setRanges("do=temprange,", param.minTemp, param.maxTemp);
-
-
-		/* Set hum range */
-		setRanges("do=humrange,", param.minHum, param.maxHum);
-
-		Server_Handle("/setRange", Link_ID);
+		Server_Handle("/setRange", Link_ID, arg);
 	}
-
-
 
 	else if (Look_for("/main", buftostoreheader) == 1)
 	{
-		Server_Handle("/main",Link_ID);
+
+		Server_Handle("/main", Link_ID, arg);
 	}
 
-
-
-	/* Turn on and off command */
+	/* Turn on and off commands */
 	else if (Look_for("/turnon", buftostoreheader) == 1)
 	{
 
 		Uart_sendstring("do=turnon.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID);
+		Server_Handle("/receiveCommand", Link_ID, arg);
 	}
 
 	else if (Look_for("/turnoff", buftostoreheader) == 1)
 	{
 
 		Uart_sendstring("do=turnoff.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID);
+		Server_Handle("/receiveCommand", Link_ID, arg);
 	}
-
-
-
 
 	/* Special buttons */
 	else if (Look_for("/special1", buftostoreheader) == 1)
 	{
 		// send special1 uart com
 		Uart_sendstring("do=special1.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID);;
+		Server_Handle("/receiveCommand", Link_ID, arg);
 	}
 
 	else if (Look_for("/special2", buftostoreheader) == 1)
 	{
 		// send special2 uart com
 		Uart_sendstring("do=special2.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID);
+		Server_Handle("/receiveCommand", Link_ID, arg);
 	}
 
 	else if (Look_for("/special3", buftostoreheader) == 1)
 	{
 		// send special3 uart com
 		Uart_sendstring("do=special3.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID);
+		Server_Handle("/receiveCommand", Link_ID, arg);
 	}
 
 	else if (Look_for("/favicon.ico", buftostoreheader) == 1);
 
 	else
 	{
-		Server_Handle("/main", Link_ID);
+		Server_Handle("/main", Link_ID, arg);
 	}
 }
-
-
-
-
-
-
-
-

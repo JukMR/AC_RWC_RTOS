@@ -1,5 +1,6 @@
 Core/Src/ESP_DATA_HANDLER.o: ../Core/Src/ESP_DATA_HANDLER.c \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESP_DATA_HANDLER.h \
+ /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/DHT.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/UartRingbuffer.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/stm32f4xx_hal_conf.h \
@@ -29,6 +30,8 @@ Core/Src/ESP_DATA_HANDLER.o: ../Core/Src/ESP_DATA_HANDLER.c \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESP_DATA_HANDLER.h:
+
+/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/DHT.h:
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/UartRingbuffer.h:
 

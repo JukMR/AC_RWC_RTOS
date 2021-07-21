@@ -361,12 +361,19 @@ int Wait_for (char *string, UART_HandleTypeDef *uart)
 {
 	int so_far =0;
 	int len = strlen (string);
+	int count =0;
 
 again:
 	while (!IsDataAvailable(uart));
 
-	while (Uart_peek(uart) != string[so_far])
-	_rx_buffer1->tail = (unsigned int)(_rx_buffer1->tail + 1) % UART_BUFFER_SIZE;
+	while (Uart_peek(uart) != string[so_far]){
+		_rx_buffer1->tail = (unsigned int)(_rx_buffer1->tail + 1) % UART_BUFFER_SIZE;
+		count++;
+
+		/* Cuidado con esto, intento de implementación timeout */
+		if (count > 5000000) return 1;
+	}
+
 
 	while (Uart_peek(uart) == string [so_far])
 	{

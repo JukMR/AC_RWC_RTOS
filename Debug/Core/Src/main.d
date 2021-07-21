@@ -38,7 +38,11 @@ Core/Src/main.o: ../Core/Src/main.c \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
+ /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h \
+ /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
+ /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESP_DATA_HANDLER.h \
+ /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/DHT.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESPDataLogger.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/DHT.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/UartRingbuffer.h \
@@ -122,7 +126,15 @@ Core/Src/main.o: ../Core/Src/main.c \
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/list.h:
 
+/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h:
+
+/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:
+
+/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
+
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESP_DATA_HANDLER.h:
+
+/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/DHT.h:
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Core/Inc/ESPDataLogger.h:
 
