@@ -95,6 +95,8 @@ int Wait_for (char *string, UART_HandleTypeDef *uart);
 /* the ISR for the uart. put it in the IRQ handler */
 void Uart_isr (UART_HandleTypeDef *huart);
 
+/* Timeout version of wait_for */
+int Wait_for_timeout (char *string, UART_HandleTypeDef *uart, uint32_t times);
 
 
 /*** Depreciated For now. This is not needed, try using other functions to meet the requirement ***/

@@ -76,7 +76,6 @@ SemaphoreHandle_t xMutex;
 void SystemClock_Config(void);
 //void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -88,8 +87,14 @@ void vSendDataThingSpeakTask(void *pvParameters)
   uint8_t buffer[2];
   DHT_DataTypedef *tmp;
 
+  volatile UBaseType_t uxHighWaterMark;
+
+
   for (;;)
   {
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+
+
     //xSemaphoreTake(xMutex, portMAX_DELAY);
     tmp = (DHT_DataTypedef *)pvParameters;
 
@@ -99,6 +104,10 @@ void vSendDataThingSpeakTask(void *pvParameters)
     ESP_Send_Multi("U6123BFR6YNW5I4V", 2, buffer);
 
     //xSemaphoreGive(xMutex);
+
+    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+    if (uxHighWaterMark < 150 ) Error_Handler();
+
     /* wait 15s between sends */
     vTaskDelay(pdMS_TO_TICKS(15000));
   }
@@ -108,14 +117,25 @@ void vRefreshWebserverTask(void *pvParameters)
 {
 	ControlTempParams *control;
 
+	volatile UBaseType_t uxHighWaterMark;
+
+
+
   for (;;)
   {
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+
+
     control = (ControlTempParams *)pvParameters;
     //xSemaphoreTake(xMutex, portMAX_DELAY);
 
+    Uart_sendstring("Empezando a refrescar la pagina\r\n", uart_command);
     Server_Start(control);
 
-//    vTaskDelay(pdMS_TO_TICKS(500));
+    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+    if (uxHighWaterMark < 150 ) Error_Handler();
+
+    vTaskDelay(pdMS_TO_TICKS(500));
 
     //xSemaphoreGive(xMutex);
   }
@@ -144,8 +164,14 @@ void vControlTempHum(void *pvParameters)
   TickType_t xLastWakeTime = xTaskGetTickCount();
   ControlTempParams *param;
 
+  volatile UBaseType_t uxHighWaterMark;
+
+
   for (;;)
   {
+	  uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+
+
     // xSemaphoreTake( xMutex, portMAX_DELAY );
     param = (ControlTempParams *)pvParameters;
 
@@ -205,6 +231,11 @@ void vControlTempHum(void *pvParameters)
       }
     }
     // xSemaphoreGive( xMutex);
+
+    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+    if (uxHighWaterMark < 150 ) Error_Handler();
+
+
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(7000));
   }
 }
@@ -230,9 +261,14 @@ void vTaskGetDataDHT(void *pvParameters)
   TickType_t xLastWakeTime = xTaskGetTickCount();
   DHT_DataTypedef *data_struct;
 
+  volatile UBaseType_t uxHighWaterMark;
+
+
   for (;;)
   {
     //xSemaphoreTake(xMutex, portMAX_DELAY);
+
+    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
 
     data_struct = (DHT_DataTypedef *)pvParameters;
     DHT_GetData(data_struct);
@@ -244,7 +280,11 @@ void vTaskGetDataDHT(void *pvParameters)
 
     //xSemaphoreGive(xMutex);
 
+    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+    if (uxHighWaterMark < 150 ) Error_Handler();
+
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(3000));
+
   }
 }
 
@@ -320,19 +360,19 @@ int main(void)
   int res1, res2, res3, res4;
   res1 = res2 = res3 = res4 = 0;
 
-  xMutex = xSemaphoreCreateMutex();
+    xMutex = xSemaphoreCreateMutex();
 
   if (xMutex != NULL)
   {
 
-//    res1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 1000, &param.dhtPolledData, 4, NULL);
-//    res2 = xTaskCreate(vControlTempHum, "controlTemp", 1000, &param, 2, NULL);
-    res3 = xTaskCreate(vRefreshWebserverTask, "RefreshWebserver", 1200, &param, 1, NULL);
-//    res4 = xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 500, &param.dhtPolledData, 3, NULL);
+    res1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 300, &param.dhtPolledData, 4, NULL);
+    res2 = xTaskCreate(vControlTempHum, "controlTemp", 300, &param, 2, NULL);
+    res3 = xTaskCreate(vRefreshWebserverTask, "RefreshWebserver", 1450, &param, 1, NULL);
+    res4 = xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 500, &param.dhtPolledData, 3, NULL);
   }
 
   /* Check all task where created correctly */
-  if (!((1 == pdPASS) && (1 == pdPASS) && (res3 == pdPASS) && (1 == pdPASS)))
+  if (!((res1 == pdPASS) && (res2 == pdPASS) && (res3 == pdPASS) && (res4 == pdPASS)))
   {
     Error_Handler();
   }

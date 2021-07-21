@@ -190,16 +190,13 @@ int Server_Send(char *str, int Link_ID)
 	Uart_flush(wifi_uart);
 	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, len);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for(">", wifi_uart)))
-		;
+	while (!(Wait_for(">", wifi_uart)));
 	Uart_sendstring(str, wifi_uart);
-	while (!(Wait_for("SEND OK", wifi_uart)))
-		;
+	while (!(Wait_for("SEND OK", wifi_uart)));
 	Uart_flush(wifi_uart);
 	sprintf(data, "AT+CIPCLOSE=%d\r\n", Link_ID);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for("OK\r\n", wifi_uart)))
-		;
+	while (!(Wait_for("OK\r\n", wifi_uart)));
 	return 1;
 }
 
@@ -212,9 +209,17 @@ int Server_Send_main(char *start, char *end, int Link_ID, DHT_DataTypedef *dht_s
 	Uart_flush(wifi_uart);
 	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenStart);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for(">", wifi_uart)));
+
+	if (!(wait_timeout(">", wifi_uart, 10000000))) {
+		goto reset;
+	}
+
+//	while (!(Wait_for(">", wifi_uart)));
 	Uart_sendstring(start, wifi_uart);
-	while (!(Wait_for("SEND OK", wifi_uart)));
+//	while (!(Wait_for("SEND OK", wifi_uart)));
+	if (!(wait_timeout("SEND OK", wifi_uart, 10000000))) {
+		goto reset;
+	}
 
 	/* param processing part */
 	Uart_flush(wifi_uart);
@@ -223,23 +228,38 @@ int Server_Send_main(char *start, char *end, int Link_ID, DHT_DataTypedef *dht_s
 	int lenBody = strlen(body);
 	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenBody);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for(">", wifi_uart)));
+
+
+//	while (!(Wait_for(">", wifi_uart)));
+	if (!(wait_timeout(">", wifi_uart, 10000000))) goto reset;
+
 	Uart_sendstring(body, wifi_uart);
-	while (!(Wait_for("SEND OK", wifi_uart)));
+//	while (!(Wait_for("SEND OK", wifi_uart)));
+	if (!(wait_timeout("SEND OK", wifi_uart, 10000000))) goto reset;
 
 	/* end processing part */
 	Uart_flush(wifi_uart);
 	int lenEnd = strlen(end);
 	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenEnd);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for(">", wifi_uart)));
+
+//	while (!(Wait_for(">", wifi_uart)));
+	if (!(wait_timeout(">", wifi_uart, 10000000))) goto reset;
 	Uart_sendstring(end, wifi_uart);
-	while (!(Wait_for("SEND OK", wifi_uart)));
+
+//	while (!(Wait_for("SEND OK", wifi_uart)));
+	if (!(wait_timeout("SEND OK", wifi_uart, 10000000))) goto reset;
+
 	Uart_flush(wifi_uart);
 
 	sprintf(data, "AT+CIPCLOSE=%d\r\n", Link_ID);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for("OK\r\n", wifi_uart)));
+
+
+//	while (!(Wait_for("OK\r\n", wifi_uart)));
+	if (!(wait_timeout("OK\r\n", wifi_uart, 10000000))) goto reset;
+
+reset:
 	return 1;
 }
 
@@ -305,12 +325,12 @@ static void Handle_controlData(controlData *tmp, ControlTempParams *arg)
 	int minTemp, maxTemp, minHum, maxHum;
 	minTemp = maxTemp = minHum = maxHum = 999;
 
-	strtoIntValue(tmp->minTemp, &arg->temp_Struct.min);
-	strtoIntValue(tmp->maxTemp, &arg->temp_Struct.min);
-	strtoIntValue(tmp->minHum, &arg->hum_Struct.min);
-	strtoIntValue(tmp->maxHum, &arg->hum_Struct.max);
+	strtoIntValue(tmp->minTemp, &minTemp);
+	strtoIntValue(tmp->maxTemp, &maxTemp);
+	strtoIntValue(tmp->minHum, &minHum);
+	strtoIntValue(tmp->maxHum, &maxHum);
 
-	if ((minTemp >= -50) && (maxTemp <= 100) && (minTemp <= maxTemp))
+	if ((minTemp >= 0) && (maxTemp <= 50) && (minTemp <= maxTemp))
 	{
 		// call change threshold function
 		arg->temp_Struct.min = minTemp;
@@ -320,7 +340,7 @@ static void Handle_controlData(controlData *tmp, ControlTempParams *arg)
 		setRanges("do=temprange,", minTemp, maxTemp);
 	}
 
-	if ((minHum >= 0) && (maxHum <= 100) && (minHum <= maxHum))
+	if ((minHum >= 5) && (maxHum <= 95) && (minHum <= maxHum))
 	{
 		// call change threshold function
 		arg->hum_Struct.min = minHum;
@@ -370,10 +390,10 @@ void Server_Start(ControlTempParams *arg)
 
 	else if (Look_for("/setRange", buftostoreheader) == 1)
 	{
-		GetDataFromBuffer("minTemp=", "&", buftostoreheader, &paramTmp.minTemp);
-		GetDataFromBuffer("maxTemp=", "&", buftostoreheader, &paramTmp.maxTemp);
-		GetDataFromBuffer("minHum=", "&", buftostoreheader, &paramTmp.minHum);
-		GetDataFromBuffer("maxHum=", " HTTP", buftostoreheader, &paramTmp.maxHum);
+		GetDataFromBuffer("minTemp=", "&", buftostoreheader, paramTmp.minTemp);
+		GetDataFromBuffer("maxTemp=", "&", buftostoreheader, paramTmp.maxTemp);
+		GetDataFromBuffer("minHum=", "&", buftostoreheader, paramTmp.minHum);
+		GetDataFromBuffer("maxHum=", " HTTP", buftostoreheader, paramTmp.maxHum);
 		Handle_controlData(&paramTmp, arg);
 
 		Server_Handle("/setRange", Link_ID, arg);

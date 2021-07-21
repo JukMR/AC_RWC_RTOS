@@ -137,7 +137,7 @@ uint8_t DHT_Read (void)
 void DHT_GetData (DHT_DataTypedef *DHT_Data)
 {
     DHT_Start ();
-	Presence = DHT_Check_Response ();
+    Presence = DHT_Check_Response ();
 	Rh_byte1 = DHT_Read ();
 	Rh_byte2 = DHT_Read ();
 	Temp_byte1 = DHT_Read ();
