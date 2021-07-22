@@ -20,34 +20,10 @@
 #define INC_ESP_DATA_HANDLER_H_
 
 #include <stdbool.h>
-#include "DHT.h"
-
-typedef struct
-{
-	char minTemp[8];
-	char maxTemp[8];
-	char minHum[8];
-	char maxHum[8];
-}controlData;
-
-typedef struct
-{
-  bool valueSet;
-  int value;
-  bool thresholdSet;
-  int min;
-  int max;
-} Threshold_TypeDef;
-
-typedef struct
-{
-  DHT_DataTypedef dhtPolledData;
-  Threshold_TypeDef temp_Struct;
-  Threshold_TypeDef hum_Struct;
-} ControlTempParams;
-
+#include "bsp.h"
 
 void ESP_Init (char *SSID, char *PASSWD, char *STAIP);
 void Server_Start (ControlTempParams *arg);
+void ESP_Send_Multi (char *APIkey, int numberoffileds, uint8_t value[]);
 
 #endif /* INC_ESP_DATA_HANDLER_H_ */

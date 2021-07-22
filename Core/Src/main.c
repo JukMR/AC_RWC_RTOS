@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.c
@@ -16,15 +15,10 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
+
+
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-//#include "cmsis_os.h"
-#include "usart.h"
-#include "gpio.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 
 #include "stdio.h"
 #include "stdbool.h"
@@ -32,54 +26,24 @@
 #include "task.h"
 #include "semphr.h"
 
-#include "ESP_DATA_HANDLER.h"
-#include "ESPDataLogger.h"
-#include "DHT.h"
-
 /* Remove after re-implementation of uart_Sendstring */
 #include "UartRingbuffer.h"
 
-#include "led.h"
+#include "bsp.h"
+
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
+
 
 #define wifi_uart &huart1
 #define uart_command &huart2
 
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE BEGIN PV */
 void *ledRed;
 void *ledBlue;
 void *ledOrange;
 void *ledGreen;
 
 SemaphoreHandle_t xMutex;
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
-//void MX_FREERTOS_Init(void);
-/* USER CODE BEGIN PFP */
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
 
 void vSendDataThingSpeakTask(void *pvParameters)
 {
@@ -129,8 +93,8 @@ void vRefreshWebserverTask(void *pvParameters)
     control = (ControlTempParams *)pvParameters;
     //xSemaphoreTake(xMutex, portMAX_DELAY);
 
-    Uart_sendstring("Empezando a refrescar la pagina\r\n", uart_command);
-    Server_Start(control);
+//    Uart_sendstring("Empezando a refrescar la pagina\r\n", uart_command);
+    RefreshWebserver(control);
 
     uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
     if (uxHighWaterMark < 150 ) Error_Handler();
@@ -141,23 +105,6 @@ void vRefreshWebserverTask(void *pvParameters)
   }
 }
 
-void vSetTemp(int Value)
-{
-  char buffer[40] = {0};
-  sprintf(buffer, "do=setTemp,%d.\r\n", Value);
-
-  // Implement this
-  Uart_sendstring(buffer, uart_command);
-}
-
-void vSetHum(int Value)
-{
-  char buffer[40] = {0};
-  sprintf(buffer, "do=setHum,%d.\r\n", Value);
-
-  // Implement this
-  Uart_sendstring(buffer, uart_command);
-}
 
 void vControlTempHum(void *pvParameters)
 {
@@ -240,19 +187,6 @@ void vControlTempHum(void *pvParameters)
   }
 }
 
-void vTurnOn()
-{
-  char buffer[20] = {0};
-  sprintf(buffer, "do=turnon.\r\n");
-  Uart_sendstring(buffer, uart_command);
-}
-
-void vTurnOff()
-{
-  char buffer[20] = {0};
-  sprintf(buffer, "do=turnoff.\r\n");
-  Uart_sendstring(buffer, uart_command);
-}
 
 void vTaskGetDataDHT(void *pvParameters)
 {
@@ -271,7 +205,7 @@ void vTaskGetDataDHT(void *pvParameters)
     uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
 
     data_struct = (DHT_DataTypedef *)pvParameters;
-    DHT_GetData(data_struct);
+    readDHTSensor(data_struct);
 
     sprintf(buf, "Temp: %u, Hum:%u\r\n", data_struct->Temperature, data_struct->Humidity);
 
@@ -288,60 +222,17 @@ void vTaskGetDataDHT(void *pvParameters)
   }
 }
 
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
+  BSP_Init();
 
-  /* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+  vConnectWifi_StaticIp("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
 
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
-
-  //  MX_USART6_UART_Init();
-
-  /* USER CODE BEGIN 2 */
-
-  //  LED_Init();
-
-  //  LED_on(ledOrange);
-
-  /* Initialize Uart library */
-  //  Ringbuf_init();
-
-  ESP_Init("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
-
-  /* USER CODE END 2 */
-
-  /* Call init function for freertos objects (in freertos.c) */
-  //  MX_FREERTOS_Init();
-  /* Start scheduler */
-  //  osKernelStart();
 
   /* Initialize some params */
+
   static ControlTempParams param;
 
   param.dhtPolledData.Humidity = 10;
@@ -371,7 +262,7 @@ int main(void)
     res4 = xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 500, &param.dhtPolledData, 3, NULL);
   }
 
-  /* Check all task where created correctly */
+  /* Check all task were created correctly */
   if (!((res1 == pdPASS) && (res2 == pdPASS) && (res3 == pdPASS) && (res4 == pdPASS)))
   {
     Error_Handler();
@@ -381,76 +272,14 @@ int main(void)
 
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  for (;;)
-  {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+  for (;;);
 }
 
 /**
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 50;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 8;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
-
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
-
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
-  /* USER CODE END Error_Handler_Debug */
-}
 
 #ifdef USE_FULL_ASSERT
 /**

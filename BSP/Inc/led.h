@@ -22,7 +22,5 @@ void LED_Init(void);
 
 
 void LED_toggle(void *led);
-//void LED_blinky(void *led, uint16_t ton, uint16_t toff, uint16_t times);
-//void LED_blinkyIRQ(void);
 
 #endif /* __led_H__ */

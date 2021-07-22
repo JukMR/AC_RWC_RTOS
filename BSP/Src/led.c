@@ -56,35 +56,3 @@ void LED_toggle(void *led){
 	gpioLed = (GPIOLED_TypeDef*)led;
 	HAL_GPIO_TogglePin(gpioLed->port, gpioLed->pin);
 }
-
-//void LED_blinky(void *led, uint16_t ton, uint16_t toff, uint16_t times){
-//
-//	ledBlinky = led;
-//	timesBlinky = times;
-//	tonBlinky = ton;
-//	toffBlinky = toff;
-//}
-//
-//void LED_blinkyIRQ(void){
-//	static uint16_t ton = 1;
-//	static uint16_t toff = 1;
-//
-//	if(timesBlinky){
-//		if(ton){
-//			ton--;
-//			if(!ton){
-//				LED_off(ledBlinky);
-//			}
-//		} else if(toff){
-//			toff--;
-//			if(!toff){
-//				timesBlinky--;
-//				if(timesBlinky){
-//					ton = tonBlinky;
-//					toff = toffBlinky;
-//					LED_on(ledBlinky);
-//				}
-//			}
-//		}
-//	}
-//}

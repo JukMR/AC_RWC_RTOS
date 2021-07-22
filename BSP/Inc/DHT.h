@@ -9,12 +9,9 @@
 #define DHT_H_
 
 #include <stdint.h>
+#include "bsp.h"
 
-typedef struct
-{
-	uint8_t Temperature;
-	uint8_t Humidity;
-}DHT_DataTypedef;
+
 
 
 
