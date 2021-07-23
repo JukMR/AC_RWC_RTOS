@@ -14,26 +14,26 @@
 
 typedef struct
 {
-	char minTemp[8];
-	char maxTemp[8];
-	char minHum[8];
-	char maxHum[8];
+	char pcMinTemp[8];
+	char pcMaxTemp[8];
+	char pcMinHum[8];
+	char pcMaxHum[8];
 }controlData;
 
 typedef struct
 {
-  bool valueSet;
-  int value;
-  bool thresholdSet;
-  int min;
-  int max;
+  bool bValueSet;
+  uint8_t uValue;
+  bool bThresholdSet;
+  uint8_t uMin;
+  uint8_t uMax;
 } Threshold_TypeDef;
 
 typedef struct
 {
-  DHT_DataTypedef dhtPolledData;
-  Threshold_TypeDef temp_Struct;
-  Threshold_TypeDef hum_Struct;
+  DHT_DataTypedef xDhtPolledData;
+  Threshold_TypeDef xTemp_Struct;
+  Threshold_TypeDef xHum_Struct;
 } ControlTempParams;
 
 void vSetTemp(int Value);
@@ -52,13 +52,13 @@ void BSP_Init(void);
 
 void vConnectWifi_StaticIp(char *ssid, char *pass, char *ip);
 
-void RefreshWebserver(ControlTempParams *arg);
+void vRefreshWebserver(ControlTempParams *arg);
 
-void readDHTSensor(DHT_DataTypedef *dataStruct);
+void vReadDHTSensor(DHT_DataTypedef *dataStruct);
 
 void vLogDataThingSpeaker(char *api, int number_values, uint8_t *value);
 
-void sendToUart(const char *str, UART_HandleTypeDef *uart);
+void vSendToUart(const char *str, UART_HandleTypeDef *uart);
 
 #endif /* INC_Bsp_H_ */
 

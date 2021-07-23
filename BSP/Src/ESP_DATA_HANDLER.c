@@ -231,7 +231,7 @@ int Server_Send_main(char *start, char *end, int Link_ID, DHT_DataTypedef *dht_s
 	/* param processing part */
 	Uart_flush(wifi_uart);
 
-	sprintf(body, "<div><h2>Temperatura actual: %u</h2><h2>Humedad actual es: %u</h2></div>", dht_struct->Temperature, dht_struct->Humidity);
+	sprintf(body, "<div><h2>Temperatura actual: %u</h2><h2>Humedad actual es: %u</h2></div>", dht_struct->uTemperature, dht_struct->uHumidity);
 	int lenBody = strlen(body);
 	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenBody);
 	Uart_sendstring(data, wifi_uart);
@@ -271,7 +271,7 @@ reset:
 }
 
 
-void Server_Handle(char *str, int Link_ID, ControlTempParams *arg)
+void Server_Handle(char *str, int Link_ID, ControlTempParams *pxArg)
 {
 	char datatosend[4096] = {0};
 
@@ -295,7 +295,7 @@ void Server_Handle(char *str, int Link_ID, ControlTempParams *arg)
 
 	else if (!(strcmp(str, "/main")))
 	{
-		Server_Send_main(home_header, home_tail, Link_ID, &arg->dhtPolledData);
+		Server_Send_main(home_header, home_tail, Link_ID, &pxArg->xDhtPolledData);
 	}
 
 	else
@@ -308,11 +308,11 @@ void Server_Handle(char *str, int Link_ID, ControlTempParams *arg)
 }
 
 
-static void strtoIntValue(char *str, int *value)
+static void strtoIntValue(char *str, uint8_t *value)
 {
 
 	if ((strcmp(str, "")))
-		*value = atoi(str);
+		*value = (uint8_t )atoi(str);
 }
 
 
@@ -332,34 +332,34 @@ static void setRanges(char *str, uint8_t minArg, uint8_t maxArg)
 }
 
 
-static void Handle_controlData(controlData *tmp, ControlTempParams *arg)
+static void Handle_controlData(controlData *tmp, ControlTempParams *pxArg)
 {
-	int minTemp, maxTemp, minHum, maxHum;
-	minTemp = maxTemp = minHum = maxHum = 999;
+	uint8_t uMinTemp, uMaxTemp, uMinHum, uMaxHum;
+	uMinTemp = uMaxTemp = uMinHum = uMaxHum = 255;
 
-	strtoIntValue(tmp->minTemp, &minTemp);
-	strtoIntValue(tmp->maxTemp, &maxTemp);
-	strtoIntValue(tmp->minHum, &minHum);
-	strtoIntValue(tmp->maxHum, &maxHum);
+	strtoIntValue(tmp->pcMinTemp, &uMinTemp);
+	strtoIntValue(tmp->pcMaxTemp, &uMaxTemp);
+	strtoIntValue(tmp->pcMinHum, &uMinHum);
+	strtoIntValue(tmp->pcMaxHum, &uMaxHum);
 
-	if ((minTemp >= 0) && (maxTemp <= 50) && (minTemp <= maxTemp))
+	if ((uMinTemp >= 0) && (uMaxTemp <= 50) && (uMinTemp <= uMaxTemp))
 	{
 		// call change threshold function
-		arg->temp_Struct.min = minTemp;
-		arg->temp_Struct.max = maxTemp;
+		pxArg->xTemp_Struct.uMin = uMinTemp;
+		pxArg->xTemp_Struct.uMax = uMaxTemp;
 
 		/* Send temp range change command */
-		setRanges("do=temprange,", minTemp, maxTemp);
+		setRanges("do=temprange,", uMinTemp, uMaxTemp);
 	}
 
-	if ((minHum >= 5) && (maxHum <= 95) && (minHum <= maxHum))
+	if ((uMinHum >= 5) && (uMaxHum <= 95) && (uMinHum <= uMaxHum))
 	{
 		// call change threshold function
-		arg->hum_Struct.min = minHum;
-		arg->hum_Struct.max = maxHum;
+		pxArg->xHum_Struct.uMin = uMinHum;
+		pxArg->xHum_Struct.uMax = uMaxHum;
 
 		/* Send hum range change command */
-		setRanges("do=humrange,", minHum, maxHum);
+		setRanges("do=humrange,", uMinHum, uMaxHum);
 	}
 }
 
@@ -386,16 +386,16 @@ void Server_Start(ControlTempParams *arg)
 		{
 			/* Set temp */
 			setValue("do=settemp,", strTemp);
-			strtoIntValue(strTemp, &arg->temp_Struct.value);
-			arg->temp_Struct.valueSet = true;
+			strtoIntValue(strTemp, &arg->xTemp_Struct.uValue);
+			arg->xTemp_Struct.bValueSet = true;
 		}
 
 		if (strcmp(strHum, " "))
 		{
 			/* Set hum */
 			setValue("do=sethum,", strHum);
-			strtoIntValue(strHum, &arg->hum_Struct.value);
-			arg->hum_Struct.valueSet = true;
+			strtoIntValue(strHum, &arg->xHum_Struct.uValue);
+			arg->xHum_Struct.bValueSet = true;
 		}
 
 		Server_Handle("/setForm", Link_ID, arg);
@@ -403,10 +403,10 @@ void Server_Start(ControlTempParams *arg)
 
 	else if (Look_for("/setRange", buftostoreheader) == 1)
 	{
-		GetDataFromBuffer("minTemp=", "&", buftostoreheader, paramTmp.minTemp);
-		GetDataFromBuffer("maxTemp=", "&", buftostoreheader, paramTmp.maxTemp);
-		GetDataFromBuffer("minHum=", "&", buftostoreheader, paramTmp.minHum);
-		GetDataFromBuffer("maxHum=", " HTTP", buftostoreheader, paramTmp.maxHum);
+		GetDataFromBuffer("minTemp=", "&", buftostoreheader, paramTmp.pcMinTemp);
+		GetDataFromBuffer("maxTemp=", "&", buftostoreheader, paramTmp.pcMaxTemp);
+		GetDataFromBuffer("minHum=", "&", buftostoreheader, paramTmp.pcMinHum);
+		GetDataFromBuffer("maxHum=", " HTTP", buftostoreheader, paramTmp.pcMaxHum);
 		Handle_controlData(&paramTmp, arg);
 
 		Server_Handle("/setRange", Link_ID, arg);

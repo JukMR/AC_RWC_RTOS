@@ -40,24 +40,24 @@ extern UART_HandleTypeDef huart2;
 #define wifi_uart &huart1
 #define uart_command &huart2
 
-void *ledRed;
-void *ledBlue;
-void *ledOrange;
-void *ledGreen;
+void *vLedRed;
+void *vLedBlue;
+void *vLedOrange;
+void *vLedGreen;
 
 SemaphoreHandle_t xMutex;
 
 typedef struct{
-	  DHT_DataTypedef *dhtPolledData;
-	  TimerHandle_t *timer;
+	  DHT_DataTypedef *pxDhtPolledData;
+	  TimerHandle_t *pxTimer;
 }task1_params;
 
 
 void vSendDataThingSpeakTask(void *pvParameters)
 {
 
-  uint8_t buffer[2];
-  DHT_DataTypedef *tmp;
+  uint8_t uBuffer[2];
+  DHT_DataTypedef *pxTmp;
 
   volatile UBaseType_t uxHighWaterMark;
 
@@ -68,12 +68,12 @@ void vSendDataThingSpeakTask(void *pvParameters)
 
 
     //xSemaphoreTake(xMutex, portMAX_DELAY);
-    tmp = (DHT_DataTypedef *)pvParameters;
+	pxTmp = (DHT_DataTypedef *)pvParameters;
 
-    buffer[0] = tmp->Temperature;
-    buffer[1] = tmp->Humidity;
+    uBuffer[0] = pxTmp->uTemperature;
+    uBuffer[1] = pxTmp->uHumidity;
 
-    vLogDataThingSpeaker("U6123BFR6YNW5I4V", 2, buffer);
+    vLogDataThingSpeaker("U6123BFR6YNW5I4V", 2, uBuffer);
 
     //xSemaphoreGive(xMutex);
 
@@ -87,7 +87,7 @@ void vSendDataThingSpeakTask(void *pvParameters)
 
 void vRefreshWebserverTask(void *pvParameters)
 {
-	ControlTempParams *control;
+	ControlTempParams *xControl;
 
 	volatile UBaseType_t uxHighWaterMark;
 
@@ -98,11 +98,11 @@ void vRefreshWebserverTask(void *pvParameters)
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
 
 
-    control = (ControlTempParams *)pvParameters;
+    xControl = (ControlTempParams *)pvParameters;
     //xSemaphoreTake(xMutex, portMAX_DELAY);
 
 //    Uart_sendstring("Empezando a refrescar la pagina\r\n", uart_command);
-    RefreshWebserver(control);
+    vRefreshWebserver(xControl);
 
     uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
     if (uxHighWaterMark < 150 ) Error_Handler();
@@ -117,7 +117,7 @@ void vRefreshWebserverTask(void *pvParameters)
 void vControlTempHum(void *pvParameters)
 {
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  ControlTempParams *param;
+  ControlTempParams *xParam;
 
   volatile UBaseType_t uxHighWaterMark;
 
@@ -128,61 +128,61 @@ void vControlTempHum(void *pvParameters)
 
 
     // xSemaphoreTake( xMutex, portMAX_DELAY );
-    param = (ControlTempParams *)pvParameters;
+    xParam = (ControlTempParams *)pvParameters;
 
     // Temperature Control
 
     // Threshold activated
-    if (param->temp_Struct.thresholdSet)
+    if (xParam->xTemp_Struct.bThresholdSet)
     {
 
       // temperature is lower than threshold
-      if (param->dhtPolledData.Temperature < param->temp_Struct.min)
+      if (xParam->xDhtPolledData.uTemperature < xParam->xTemp_Struct.uMin)
       {
-        vSetTemp(param->temp_Struct.max);
+        vSetTemp(xParam->xTemp_Struct.uMax);
 
         // temperature is higher than threshold
       }
-      else if (param->dhtPolledData.Temperature > param->temp_Struct.max)
+      else if (xParam->xDhtPolledData.uTemperature > xParam->xTemp_Struct.uMax)
       {
-        vSetTemp(param->temp_Struct.min);
+        vSetTemp(xParam->xTemp_Struct.uMin);
       }
 
       // temperature value set
     }
-    else if (param->temp_Struct.valueSet)
+    else if (xParam->xTemp_Struct.bValueSet)
     {
-      if (param->dhtPolledData.Temperature != param->temp_Struct.value)
+      if (xParam->xDhtPolledData.uTemperature != xParam->xTemp_Struct.uValue)
       {
-        vSetTemp(param->temp_Struct.value);
+        vSetTemp(xParam->xTemp_Struct.uValue);
       }
     }
 
     // Humidity Control
 
     // Threshold activated
-    if (param->hum_Struct.thresholdSet)
+    if (xParam->xHum_Struct.bThresholdSet)
     {
 
       // temperature is lower than threshold
-      if (param->dhtPolledData.Humidity < param->hum_Struct.min)
+      if (xParam->xDhtPolledData.uHumidity < xParam->xHum_Struct.uMin)
       {
-        vSetHum(param->hum_Struct.max);
+        vSetHum(xParam->xHum_Struct.uMax);
 
         // temperature is higher than threshold
       }
-      else if (param->dhtPolledData.Humidity > param->hum_Struct.max)
+      else if (xParam->xDhtPolledData.uHumidity > xParam->xHum_Struct.uMax)
       {
-        vSetHum(param->hum_Struct.min);
+        vSetHum(xParam->xHum_Struct.uMin);
       }
 
       // temperature value set
     }
-    else if (param->hum_Struct.valueSet)
+    else if (xParam->xHum_Struct.bValueSet)
     {
-      if (param->dhtPolledData.Humidity != param->hum_Struct.value)
+      if (xParam->xDhtPolledData.uHumidity != xParam->xHum_Struct.uValue)
       {
-        vSetHum(param->hum_Struct.value);
+        vSetHum(xParam->xHum_Struct.uValue);
       }
     }
     // xSemaphoreGive( xMutex);
@@ -203,38 +203,38 @@ void vTaskGetDataDHT(void *pvParameters)
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
 
-  task1_params *var;
+  task1_params *xVar;
 //  TimerHandle_t *timer;
-  DHT_DataTypedef *data_struct;
+  DHT_DataTypedef *xData_struct;
 
-//  volatile UBaseType_t uxHighWaterMark;
+ volatile UBaseType_t uxHighWaterMark;
 
   for (;;)
   {
     //xSemaphoreTake(xMutex, portMAX_DELAY);
-	LED_on(ledBlue);
+	vLED_on(vLedBlue);
 
-//    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+   uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
 
-    var = (task1_params *) pvParameters;
+   xVar = (task1_params *) pvParameters;
 //    timer = var->timer;
-    data_struct = var->dhtPolledData;
+    xData_struct = xVar->pxDhtPolledData;
 
 
-    readDHTSensor(data_struct);
+    vReadDHTSensor(xData_struct);
 
-    sprintf(buf, "Temp: %u, Hum:%u\r\n", data_struct->Temperature, data_struct->Humidity);
+    sprintf(buf, "Temp: %u, Hum:%u\r\n", xData_struct->uTemperature, xData_struct->uHumidity);
 
     /* Improve this somehow */
-    sendToUart(buf, uart_command);
+    vSendToUart(buf, uart_command);
 
     //xSemaphoreGive(xMutex);
 
-//    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
-//    if (uxHighWaterMark < 150 ) Error_Handler();
+   uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+   if (uxHighWaterMark < 150 ) Error_Handler();
 
 
-    if (xTimerStart(*var->timer, pdMS_TO_TICKS(1500) ) == pdFAIL){
+    if (xTimerStart(*xVar->pxTimer, pdMS_TO_TICKS(1500) ) == pdFAIL){
     	/* Timer not initialized */
     	Error_Handler();
     }
@@ -249,14 +249,12 @@ void vTaskGetDataDHT(void *pvParameters)
 
 
 void vTimerTurnOn(){
-//	sendToUart("Se prende \r\n", uart_command);
-	LED_on(ledBlue);
+	vLED_on(vLedBlue);
 
 }
 
 void vTimerTurnOff(){
-//	sendToUart("Se apaga \r\n", uart_command);
-	LED_off(ledBlue);
+	vLED_off(vLedBlue);
 
 }
 
@@ -265,81 +263,69 @@ int main(void)
 {
   BSP_Init();
 
-
-
   vConnectWifi_StaticIp("Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200");
 
 
   /* Initialize some params */
 
-  static ControlTempParams param;
+  static ControlTempParams xParam;
 
-  param.dhtPolledData.Humidity = 10;
-  param.dhtPolledData.Temperature = 10;
+  xParam.xDhtPolledData.uHumidity = 10;
+  xParam.xDhtPolledData.uTemperature = 10;
 
-  param.temp_Struct.min = 20;
-  param.temp_Struct.max = 40;
-  param.temp_Struct.thresholdSet = true;
-  param.temp_Struct.valueSet = false;
+  xParam.xTemp_Struct.uMin = 20;
+  xParam.xTemp_Struct.uMax = 40;
+  xParam.xTemp_Struct.bThresholdSet = true;
+  xParam.xTemp_Struct.bValueSet = false;
 
-  param.hum_Struct.min = 90;
-  param.hum_Struct.max = 95;
-  param.temp_Struct.thresholdSet = true;
-  param.hum_Struct.valueSet = false;
+  xParam.xHum_Struct.uMin = 90;
+  xParam.xHum_Struct.uMax = 95;
+  xParam.xTemp_Struct.bThresholdSet = true;
+  xParam.xHum_Struct.bValueSet = false;
 
 
-  int res1, res2, res3, res4;
-  res1 = res2 = res3 = res4 = 0;
+  int iRes1, iRes2, iRes3, iRes4;
+  iRes1 = iRes2 = iRes3 = iRes4 = 0;
 
   xMutex = xSemaphoreCreateMutex();
 
 
-  static TimerHandle_t xOneShotTimer1, xOneShotTimer2;
+  static TimerHandle_t xOneShotTimer1;
 
   xOneShotTimer1 = xTimerCreate("Ledon", pdMS_TO_TICKS(3000), pdFALSE,	0, vTimerTurnOff );
-//  xOneShotTimer2 = xTimerCreate("Ledoff", pdMS_TO_TICKS(1000), pdFALSE,	0, vTimerTurnOn );
+
 
 
   if (xOneShotTimer1 == NULL )
 	  // timer not created
 	  Error_Handler();
 
-//  if (xOneShotTimer2 == NULL )
-//	  // timer not created
-//	  Error_Handler();
-
   if (xTimerStart(xOneShotTimer1, 0 ) == pdFAIL){
-	  sendToUart("Timer not started \r\n", uart_command);\
+	  vSendToUart("Timer not started \r\n", uart_command);\
 	  Error_Handler();
   }
-//  if (xTimerStart(xOneShotTimer2, 0 ) == pdFAIL){
-//	  sendToUart("Timer not started \r\n", uart_command);\
-//	  Error_Handler();
-//  }
 
 
 
 
 
 
-  static task1_params task1args;
+  static task1_params xTask1args;
 
-  task1args.dhtPolledData = &param.dhtPolledData;
-  task1args.timer = &xOneShotTimer1;
-
-//  vTaskGetDataDHT(&task1args);
+  xTask1args.pxDhtPolledData = &xParam.xDhtPolledData;
+  xTask1args.pxTimer = &xOneShotTimer1;
 
   if (xMutex != NULL)
   {
 
-    res1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 300, &task1args, 4, NULL);
-    res4 = xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 500, &param.dhtPolledData, 3, NULL);
-    res2 = xTaskCreate(vControlTempHum, "controlTemp", 300, &param, 2, NULL);
-    res3 = xTaskCreate(vRefreshWebserverTask, "RefreshWebserver", 1450, &param, 1, NULL);
+    iRes1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 300, &xTask1args, 4, NULL);
+    iRes4 = xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 500, &xParam.xDhtPolledData, 3, NULL);
+    iRes2 = xTaskCreate(vControlTempHum, "controlTemp", 300, &xParam, 2, NULL);
+    iRes3 = xTaskCreate(vRefreshWebserverTask, "RefreshWebserver", 1450, &xParam, 1, NULL);
   }
 
   /* Check all task were created correctly */
-  if (!((res1 == pdPASS) && (res2 == pdPASS) && (res3 == pdPASS) && (res4 == pdPASS)))
+  if (!((iRes1 == pdPASS) && (iRes2 == pdPASS) && (iRes3 == pdPASS) && (iRes4 == pdPASS)))
   {
     Error_Handler();
   }

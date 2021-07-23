@@ -147,8 +147,8 @@ void DHT_GetData (DHT_DataTypedef *DHT_Data)
 	if (SUM == (Rh_byte1+Rh_byte2+Temp_byte1+Temp_byte2))
 	{
 		#if defined(TYPE_DHT11)
-			DHT_Data->Temperature = Temp_byte1;
-			DHT_Data->Humidity = Rh_byte1;
+			DHT_Data->uTemperature = Temp_byte1;
+			DHT_Data->uHumidity = Rh_byte1;
 		#endif
 
 		#if defined(TYPE_DHT22)

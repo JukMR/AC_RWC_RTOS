@@ -11,16 +11,16 @@ typedef struct
 } GPIOLED_TypeDef;
 
 
-extern void *ledRed;
-extern void *ledBlue;
-extern void *ledOrange;
-extern void *ledGreen;
+extern void *vLedRed;
+extern void *vLedBlue;
+extern void *vLedOrange;
+extern void *vLedGreen;
 
-void LED_on(void *led);
-void LED_off(void *led);
-void LED_Init(void);
+void vLED_on(void *led);
+void vLED_off(void *led);
+void vLED_Init(void);
 
 
-void LED_toggle(void *led);
+void vLED_toggle(void *led);
 
 #endif /* __led_H__ */

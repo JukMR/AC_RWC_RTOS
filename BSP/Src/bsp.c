@@ -55,7 +55,7 @@ void BSP_Init()
     MX_USART1_UART_Init();
     MX_USART2_UART_Init();
 
-    LED_Init();
+    vLED_Init();
 }
 
 
@@ -63,11 +63,11 @@ void vConnectWifi_StaticIp(char *ssid, char *pass, char* ip){
     ESP_Init(ssid, pass, ip);
 }
 
-void RefreshWebserver(ControlTempParams *arg){
+void vRefreshWebserver(ControlTempParams *arg){
 	Server_Start(arg);
 }
 
-void readDHTSensor(DHT_DataTypedef *dataStruct){
+void vReadDHTSensor(DHT_DataTypedef *dataStruct){
     DHT_GetData(dataStruct);
 }
 
@@ -75,7 +75,7 @@ void vLogDataThingSpeaker(char *api, int number_values, uint8_t *buffer){
 	ESP_Send_Multi("api", number_values, buffer);
 }
 
-void sendToUart(const char *str, UART_HandleTypeDef *uart){
+void vSendToUart(const char *str, UART_HandleTypeDef *uart){
 	Uart_sendstring(str, uart);
 }
 
