@@ -16,8 +16,8 @@
   ******************************************************************************
 */
 
-#ifndef INC_ESP_DATA_HANDLER_H_
-#define INC_ESP_DATA_HANDLER_H_
+#ifndef INC_ESP8266_H_
+#define INC_ESP8266_H_
 
 #include <stdbool.h>
 #include "bsp.h"
@@ -26,4 +26,4 @@ void ESP_Init (char *SSID, char *PASSWD, char *STAIP);
 void Server_Start (ControlTempParams *arg);
 void ESP_Send_Multi (char *APIkey, int numberoffileds, uint8_t value[]);
 
-#endif /* INC_ESP_DATA_HANDLER_H_ */
+#endif /* INC_ESP8266_H_ */

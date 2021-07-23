@@ -1,7 +1,7 @@
 "BSP/Src/DHT.o"
-"BSP/Src/ESP_DATA_HANDLER.o"
 "BSP/Src/UartRingbuffer.o"
 "BSP/Src/bsp.o"
+"BSP/Src/esp8266.o"
 "BSP/Src/gpio.o"
 "BSP/Src/led.o"
 "BSP/Src/usart.o"

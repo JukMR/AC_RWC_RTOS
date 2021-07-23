@@ -1,9 +1,9 @@
+#include <esp8266.h>
 #include <stdio.h>
 
 #include "bsp.h"
 #include "led.h"
 #include "usart.h"
-#include "ESP_DATA_HANDLER.h"
 #include "gpio.h"
 #include "UartRingbuffer.h"
 #include "DHT.h"
@@ -16,8 +16,6 @@ void vSetTemp(uint8_t Value)
 {
     char buffer[40] = {0};
     sprintf(buffer, "do=setTemp,%u.\r\n", Value);
-
-    // Implement this
     Uart_sendstring(buffer, uart_command);
 }
 
@@ -25,8 +23,6 @@ void vSetHum(uint8_t Value)
 {
     char buffer[40] = {0};
     sprintf(buffer, "do=setHum,%u.\r\n", Value);
-
-    // Implement this
     Uart_sendstring(buffer, uart_command);
 }
 
@@ -72,7 +68,7 @@ void vReadDHTSensor(DHT_DataTypedef *dataStruct){
 }
 
 void vLogDataThingSpeaker(char *api, int number_values, uint8_t *buffer){
-	ESP_Send_Multi("api", number_values, buffer);
+	ESP_Send_Multi(api, number_values, buffer);
 }
 
 void vSendToUart(const char *str, UART_HandleTypeDef *uart){

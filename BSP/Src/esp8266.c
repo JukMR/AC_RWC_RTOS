@@ -16,7 +16,7 @@
   ******************************************************************************
 */
 
-#include "ESP_DATA_HANDLER.h"
+#include <esp8266.h>
 #include "UartRingbuffer.h"
 #include "stdio.h"
 #include "string.h"
@@ -342,24 +342,36 @@ static void Handle_controlData(controlData *tmp, ControlTempParams *pxArg)
 	strtoIntValue(tmp->pcMinHum, &uMinHum);
 	strtoIntValue(tmp->pcMaxHum, &uMaxHum);
 
+
+	/* Check temperature range */
 	if ((uMinTemp >= 0) && (uMaxTemp <= 50) && (uMinTemp <= uMaxTemp))
 	{
-		// call change threshold function
+		/* call change threshold function */
 		pxArg->xTemp_Struct.uMin = uMinTemp;
 		pxArg->xTemp_Struct.uMax = uMaxTemp;
 
-		/* Send temp range change command */
-		setRanges("do=temprange,", uMinTemp, uMaxTemp);
+		/* Disable setValue if present */
+		pxArg->xTemp_Struct.bValueSet = false;
+
+	/* Reset threshold command */
+	} else if (tmp->pcMinTemp[0] == 'c' && tmp->pcMaxTemp[0] == 'c'){
+		pxArg->xTemp_Struct.bThresholdSet = false;
 	}
 
+
+	/* Check humidity range */
 	if ((uMinHum >= 5) && (uMaxHum <= 95) && (uMinHum <= uMaxHum))
 	{
-		// call change threshold function
+		/* call change threshold function */
 		pxArg->xHum_Struct.uMin = uMinHum;
 		pxArg->xHum_Struct.uMax = uMaxHum;
 
-		/* Send hum range change command */
-		setRanges("do=humrange,", uMinHum, uMaxHum);
+		/* Disable setValue if present */
+		pxArg->xHum_Struct.bValueSet = false;
+
+	/* Reset threshold command */
+	} else if (tmp->pcMinHum[0] == 'c' && tmp->pcMaxHum[0] == 'c'){
+		pxArg->xHum_Struct.bThresholdSet = false;
 	}
 }
 
@@ -377,6 +389,7 @@ void Server_Start(ControlTempParams *arg)
 	char strTemp[5] = {0};
 	char strHum[5] = {0};
 
+	/* Values */
 	if (Look_for("/setForm", buftostoreheader) == 1)
 	{
 		GetDataFromBuffer("setTemp=", "&", buftostoreheader, strTemp);
@@ -388,19 +401,27 @@ void Server_Start(ControlTempParams *arg)
 			setValue("do=settemp,", strTemp);
 			strtoIntValue(strTemp, &arg->xTemp_Struct.uValue);
 			arg->xTemp_Struct.bValueSet = true;
+			arg->xTemp_Struct.bThresholdSet = false;
+
+		} else if (strTemp[0] ==  'c'){
+			arg->xTemp_Struct.bValueSet = false;
 		}
 
-		if (strcmp(strHum, " "))
+		if (strcmp(strHum, " ") && ((char)strHum[0] != '\0'))
 		{
 			/* Set hum */
 			setValue("do=sethum,", strHum);
 			strtoIntValue(strHum, &arg->xHum_Struct.uValue);
 			arg->xHum_Struct.bValueSet = true;
+			arg->xHum_Struct.bThresholdSet = false;
+
+		} else if (strHum[0] ==  'c'){
+			arg->xHum_Struct.bValueSet = false;
 		}
 
 		Server_Handle("/setForm", Link_ID, arg);
 	}
-
+	/* Ranges */
 	else if (Look_for("/setRange", buftostoreheader) == 1)
 	{
 		GetDataFromBuffer("minTemp=", "&", buftostoreheader, paramTmp.pcMinTemp);
@@ -411,6 +432,7 @@ void Server_Start(ControlTempParams *arg)
 
 		Server_Handle("/setRange", Link_ID, arg);
 	}
+
 
 	else if (Look_for("/main", buftostoreheader) == 1)
 	{
@@ -516,7 +538,6 @@ void ESP_Send_Multi (char *APIkey, int numberoffileds, uint8_t value[])
 		goto reset;
 	}
 
-	HAL_Delay(750);
 
 	Uart_sendstring (local_buf, wifi_uart);
 
