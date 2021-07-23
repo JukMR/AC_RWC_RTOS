@@ -36,9 +36,9 @@ typedef struct
   Threshold_TypeDef xHum_Struct;
 } ControlTempParams;
 
-void vSetTemp(int Value);
+void vSetTemp(uint8_t Value);
 
-void vSetHum(int Value);
+void vSetHum(uint8_t Value);
 
 void vTurnOn(void);
 
@@ -59,6 +59,10 @@ void vReadDHTSensor(DHT_DataTypedef *dataStruct);
 void vLogDataThingSpeaker(char *api, int number_values, uint8_t *value);
 
 void vSendToUart(const char *str, UART_HandleTypeDef *uart);
+
+void vTurnLedOn(void *led);
+
+void vTurnLedOff(void *led);
 
 #endif /* INC_Bsp_H_ */
 

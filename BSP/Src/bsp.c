@@ -12,19 +12,19 @@
 #define uart_command &huart2
 
 
-void vSetTemp(int Value)
+void vSetTemp(uint8_t Value)
 {
     char buffer[40] = {0};
-    sprintf(buffer, "do=setTemp,%d.\r\n", Value);
+    sprintf(buffer, "do=setTemp,%u.\r\n", Value);
 
     // Implement this
     Uart_sendstring(buffer, uart_command);
 }
 
-void vSetHum(int Value)
+void vSetHum(uint8_t Value)
 {
     char buffer[40] = {0};
-    sprintf(buffer, "do=setHum,%d.\r\n", Value);
+    sprintf(buffer, "do=setHum,%u.\r\n", Value);
 
     // Implement this
     Uart_sendstring(buffer, uart_command);
@@ -77,6 +77,14 @@ void vLogDataThingSpeaker(char *api, int number_values, uint8_t *buffer){
 
 void vSendToUart(const char *str, UART_HandleTypeDef *uart){
 	Uart_sendstring(str, uart);
+}
+
+void vTurnLedOn(void *led){
+	vLED_on(led);
+}
+
+void vTurnLedOff(void *led){
+	vLED_off(led);
 }
 
 void SystemClock_Config(void)
