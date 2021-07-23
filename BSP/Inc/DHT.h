@@ -9,10 +9,7 @@
 #define DHT_H_
 
 #include <stdint.h>
-#include "bsp.h"
-
-
-
+#include "main.h"
 
 
 void DHT_GetData (DHT_DataTypedef *DHT_Data);

@@ -43,8 +43,7 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h \
  /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/BSP/Inc/DHT.h \
- /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/BSP/Inc/bsp.h
+ /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/BSP/Inc/DHT.h
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 
@@ -135,5 +134,3 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h:
 
 /home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/BSP/Inc/DHT.h:
-
-/home/julian/Documents/famaf/micro/stm32/projects/RTOS_DHT_ESP8266/BSP/Inc/bsp.h:

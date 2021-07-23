@@ -71,6 +71,14 @@ void readDHTSensor(DHT_DataTypedef *dataStruct){
     DHT_GetData(dataStruct);
 }
 
+void vLogDataThingSpeaker(char *api, int number_values, uint8_t *buffer){
+	ESP_Send_Multi("api", number_values, buffer);
+}
+
+void sendToUart(const char *str, UART_HandleTypeDef *uart){
+	Uart_sendstring(str, uart);
+}
+
 void SystemClock_Config(void)
 {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};

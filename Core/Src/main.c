@@ -25,11 +25,13 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "timers.h"
 
-/* Remove after re-implementation of uart_Sendstring */
-#include "UartRingbuffer.h"
 
 #include "bsp.h"
+
+
+#include "led.h"
 
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
@@ -44,6 +46,12 @@ void *ledOrange;
 void *ledGreen;
 
 SemaphoreHandle_t xMutex;
+
+typedef struct{
+	  DHT_DataTypedef *dhtPolledData;
+	  TimerHandle_t *timer;
+}task1_params;
+
 
 void vSendDataThingSpeakTask(void *pvParameters)
 {
@@ -65,7 +73,7 @@ void vSendDataThingSpeakTask(void *pvParameters)
     buffer[0] = tmp->Temperature;
     buffer[1] = tmp->Humidity;
 
-    ESP_Send_Multi("U6123BFR6YNW5I4V", 2, buffer);
+    vLogDataThingSpeaker("U6123BFR6YNW5I4V", 2, buffer);
 
     //xSemaphoreGive(xMutex);
 
@@ -193,34 +201,65 @@ void vTaskGetDataDHT(void *pvParameters)
 
   char buf[30];
   TickType_t xLastWakeTime = xTaskGetTickCount();
+
+
+  task1_params *var;
+//  TimerHandle_t *timer;
   DHT_DataTypedef *data_struct;
 
-  volatile UBaseType_t uxHighWaterMark;
-
+//  volatile UBaseType_t uxHighWaterMark;
 
   for (;;)
   {
     //xSemaphoreTake(xMutex, portMAX_DELAY);
+	LED_on(ledBlue);
 
-    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+//    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
 
-    data_struct = (DHT_DataTypedef *)pvParameters;
+    var = (task1_params *) pvParameters;
+//    timer = var->timer;
+    data_struct = var->dhtPolledData;
+
+
     readDHTSensor(data_struct);
 
     sprintf(buf, "Temp: %u, Hum:%u\r\n", data_struct->Temperature, data_struct->Humidity);
 
     /* Improve this somehow */
-    Uart_sendstring(buf, uart_command);
+    sendToUart(buf, uart_command);
 
     //xSemaphoreGive(xMutex);
 
-    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
-    if (uxHighWaterMark < 150 ) Error_Handler();
+//    uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+//    if (uxHighWaterMark < 150 ) Error_Handler();
+
+
+    if (xTimerStart(*var->timer, pdMS_TO_TICKS(1500) ) == pdFAIL){
+    	/* Timer not initialized */
+    	Error_Handler();
+    }
+
+
 
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(3000));
 
   }
 }
+
+
+
+void vTimerTurnOn(){
+//	sendToUart("Se prende \r\n", uart_command);
+	LED_on(ledBlue);
+
+}
+
+void vTimerTurnOff(){
+//	sendToUart("Se apaga \r\n", uart_command);
+	LED_off(ledBlue);
+
+}
+
 
 int main(void)
 {
@@ -248,18 +287,55 @@ int main(void)
   param.temp_Struct.thresholdSet = true;
   param.hum_Struct.valueSet = false;
 
+
   int res1, res2, res3, res4;
   res1 = res2 = res3 = res4 = 0;
 
-    xMutex = xSemaphoreCreateMutex();
+  xMutex = xSemaphoreCreateMutex();
+
+
+  static TimerHandle_t xOneShotTimer1, xOneShotTimer2;
+
+  xOneShotTimer1 = xTimerCreate("Ledon", pdMS_TO_TICKS(3000), pdFALSE,	0, vTimerTurnOff );
+//  xOneShotTimer2 = xTimerCreate("Ledoff", pdMS_TO_TICKS(1000), pdFALSE,	0, vTimerTurnOn );
+
+
+  if (xOneShotTimer1 == NULL )
+	  // timer not created
+	  Error_Handler();
+
+//  if (xOneShotTimer2 == NULL )
+//	  // timer not created
+//	  Error_Handler();
+
+  if (xTimerStart(xOneShotTimer1, 0 ) == pdFAIL){
+	  sendToUart("Timer not started \r\n", uart_command);\
+	  Error_Handler();
+  }
+//  if (xTimerStart(xOneShotTimer2, 0 ) == pdFAIL){
+//	  sendToUart("Timer not started \r\n", uart_command);\
+//	  Error_Handler();
+//  }
+
+
+
+
+
+
+  static task1_params task1args;
+
+  task1args.dhtPolledData = &param.dhtPolledData;
+  task1args.timer = &xOneShotTimer1;
+
+//  vTaskGetDataDHT(&task1args);
 
   if (xMutex != NULL)
   {
 
-    res1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 300, &param.dhtPolledData, 4, NULL);
+    res1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 300, &task1args, 4, NULL);
+    res4 = xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 500, &param.dhtPolledData, 3, NULL);
     res2 = xTaskCreate(vControlTempHum, "controlTemp", 300, &param, 2, NULL);
     res3 = xTaskCreate(vRefreshWebserverTask, "RefreshWebserver", 1450, &param, 1, NULL);
-    res4 = xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 500, &param.dhtPolledData, 3, NULL);
   }
 
   /* Check all task were created correctly */

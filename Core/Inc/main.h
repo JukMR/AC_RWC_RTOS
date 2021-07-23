@@ -37,7 +37,11 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+typedef struct
+{
+	uint8_t Temperature;
+	uint8_t Humidity;
+}DHT_DataTypedef;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

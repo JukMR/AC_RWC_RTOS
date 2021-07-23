@@ -5,18 +5,12 @@
  *      Author: Julian
  */
 
-
 #ifndef BSP__H_
 #define BSP__H_
 
 #include <stdbool.h>
 #include <stdint.h>
-
-typedef struct
-{
-	uint8_t Temperature;
-	uint8_t Humidity;
-}DHT_DataTypedef;
+#include "main.h"
 
 typedef struct
 {
@@ -42,11 +36,9 @@ typedef struct
   Threshold_TypeDef hum_Struct;
 } ControlTempParams;
 
-
 void vSetTemp(int Value);
 
 void vSetHum(int Value);
-
 
 void vTurnOn(void);
 
@@ -63,6 +55,10 @@ void vConnectWifi_StaticIp(char *ssid, char *pass, char *ip);
 void RefreshWebserver(ControlTempParams *arg);
 
 void readDHTSensor(DHT_DataTypedef *dataStruct);
+
+void vLogDataThingSpeaker(char *api, int number_values, uint8_t *value);
+
+void sendToUart(const char *str, UART_HandleTypeDef *uart);
 
 #endif /* INC_Bsp_H_ */
 
