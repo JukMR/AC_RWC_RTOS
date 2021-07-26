@@ -373,20 +373,21 @@ int main(void)
 
 	/* Initialize some params */
 
-	static ControlTempParams_t xParam;
+	// static ControlTempParams_t xParam;
+	ControlTempParams_t *xParam = calloc(1, sizeof(ControlTempParams_t));
 
-	xParam.xDhtPolledData.uHumidity = 10;
-	xParam.xDhtPolledData.uTemperature = 10;
+	xParam->xDhtPolledData.uHumidity = 10;
+	xParam->xDhtPolledData.uTemperature = 10;
 
-	xParam.xTemp_Struct.uMin = 20;
-	xParam.xTemp_Struct.uMax = 40;
-	xParam.xTemp_Struct.bThresholdSet = true;
-	xParam.xTemp_Struct.bValueSet = false;
+	xParam->xTemp_Struct.uMin = 20;
+	xParam->xTemp_Struct.uMax = 40;
+	xParam->xTemp_Struct.bThresholdSet = true;
+	xParam->xTemp_Struct.bValueSet = false;
 
-	xParam.xHum_Struct.uMin = 90;
-	xParam.xHum_Struct.uMax = 95;
-	xParam.xTemp_Struct.bThresholdSet = true;
-	xParam.xHum_Struct.bValueSet = false;
+	xParam->xHum_Struct.uMin = 90;
+	xParam->xHum_Struct.uMax = 95;
+	xParam->xTemp_Struct.bThresholdSet = true;
+	xParam->xHum_Struct.bValueSet = false;
 
 	int iRes1, iRes2, iRes3, iRes4, iRes5;
 	iRes1 = iRes2 = iRes3 = iRes4 = iRes5 = 0;
@@ -415,13 +416,15 @@ int main(void)
 
 
 	/* Start static variables */
-	static xTask_params_t xTask1Args, xTask2Args;
+	// static xTask_params_t xTask1Args, xTask2Args;
+	xTask_params_t *xTask1Args = calloc(1, sizeof(xTask_params_t));
+	xTask_params_t *xTask2Args = calloc(1, sizeof(xTask_params_t));
 
-	xTask1Args.pxDhtPolledData = &xParam.xDhtPolledData;
-	xTask1Args.pxTimer = &xBlinkBlueLed;
+	xTask1Args->pxDhtPolledData = &xParam->xDhtPolledData;
+	xTask1Args->pxTimer = &xBlinkBlueLed;
 
-	xTask2Args.pxDhtPolledData = &xParam.xDhtPolledData;
-	xTask2Args.pxTimer = &xBlinkOrangeLed;
+	xTask2Args->pxDhtPolledData = &xParam->xDhtPolledData;
+	xTask2Args->pxTimer = &xBlinkOrangeLed;
 
 	/* Start SchedulerTask variables */
 	xRefreshWebServer_t *xRefreshVar = calloc(1, sizeof(xRefreshWebServer_t));
@@ -434,16 +437,16 @@ int main(void)
 	xSharedArgs->time = 5u;
 
 	xRefreshVar->xSharedArgs = xSharedArgs;
-	xRefreshVar->control = &xParam;
+	xRefreshVar->control = xParam;
 
 
 	if (xMutex != NULL)
 	{
-		iRes1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 300, &xTask1Args, 4, NULL);
-		iRes2 = xTaskCreate(vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 500, &xTask2Args, 3, NULL);
-		iRes3 = xTaskCreate(vTaskControlTempHum, "vTaskControlTempHum", 300, &xParam, 2, NULL);
-		iRes4 = xTaskCreate(vTaskRefreshWebserver, "RefreshWebserver", 1450, xRefreshVar, 1, NULL);
-		iRes5 = xTaskCreate(vTaskCreateTimer, "vCreateTimerTask", 300, xSharedArgs, 3, NULL);
+		iRes1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetDataDHT", 300, xTask1Args, 4, NULL);
+		iRes2 = xTaskCreate(vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 500, xTask2Args, 3, NULL);
+		iRes3 = xTaskCreate(vTaskControlTempHum, "vTaskControlTempHum", 300, xParam, 2, NULL);
+		iRes4 = xTaskCreate(vTaskRefreshWebserver, "vTaskRefreshWebserver", 1450, xRefreshVar, 1, NULL);
+		iRes5 = xTaskCreate(vTaskCreateTimer, "vTaskCreateTimer", 300, xSharedArgs, 3, NULL);
 	}
 
 	/* Check all task were created correctly */
