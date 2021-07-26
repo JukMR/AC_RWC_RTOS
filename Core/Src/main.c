@@ -37,7 +37,7 @@
 
 #include "customTypes.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
@@ -271,7 +271,7 @@ void HandleScheduledCommand(char *pcCommand, char *pcArg1, char *pcArg2){
 		char buf[32];
 		uint8_t uArg1 = atoi(pcArg1);
 		uint8_t uArg2 = atoi(pcArg2);
-		sprintf(buf, "setRangeTemp,%u,%u.\r\n", uArg1, uArg2);
+		sprintf(buf, "do=setRangeTemp,%u,%u.\r\n", uArg1, uArg2);
 		vSendToUart(buf, uart_command);
 	}
 
@@ -279,7 +279,7 @@ void HandleScheduledCommand(char *pcCommand, char *pcArg1, char *pcArg2){
 		char buf[32];
 		uint8_t uArg1 = atoi(pcArg1);
 		uint8_t uArg2 = atoi(pcArg2);
-		sprintf(buf, "setRangeHum,%u,%u.\r\n", uArg1, uArg2);
+		sprintf(buf, "do=setRangeHum,%u,%u.\r\n", uArg1, uArg2);
 		vSendToUart(buf, uart_command);
 	}
 
@@ -305,7 +305,12 @@ void vScheduleTask(void * pvParameters){
 	{
 		cast = (xScheduledTask_t *) pvParameters;
 
-		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(cast->time * 1000));
+		if (cast->time == 0){
+			vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1 * 1000));
+		} else {
+			vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(cast->time * 1000));
+		}
+
 		HandleScheduledCommand(cast->command, cast->arg1, cast->arg2);
 
 	}
@@ -428,14 +433,14 @@ int main(void)
 	if (xMutex != NULL)
 	{
 		iRes1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 300, &xTask1Args, 4, NULL);
-//		iRes2 = xTaskCreate(vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 500, &xTask2Args, 3, NULL);
-//		iRes3 = xTaskCreate(vTaskControlTempHum, "vTaskControlTempHum", 300, &xParam, 2, NULL);
+		iRes2 = xTaskCreate(vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 500, &xTask2Args, 3, NULL);
+		iRes3 = xTaskCreate(vTaskControlTempHum, "vTaskControlTempHum", 300, &xParam, 2, NULL);
 		iRes4 = xTaskCreate(vTaskRefreshWebserver, "RefreshWebserver", 1450, xRefreshVar, 1, NULL);
 		iRes5 = xTaskCreate(vTaskCreateTimer, "vCreateTimerTask", 300, xSharedArgs, 3, NULL);
 	}
 
 	/* Check all task were created correctly */
-	if (!((iRes1 == pdPASS) && (1 == pdPASS) && (1 == pdPASS) && (iRes4 == pdPASS )&& (iRes5 == pdPASS)))
+	if (!((iRes1 == pdPASS) && (iRes4 == pdPASS) && (iRes3 == pdPASS) && (iRes4 == pdPASS )&& (iRes5 == pdPASS)))
 	{
 		Error_Handler();
 	}
