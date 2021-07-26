@@ -359,8 +359,7 @@ void Server_Handle(char *str, int Link_ID, ControlTempParams_t *pxArg)
 
 static void strtoIntValue(char *str, uint8_t *value)
 {
-
-	if ((strcmp(str, "")))
+	if (strcmp(str, "") && str[0] != 'c')
 		*value = (uint8_t )atoi(str);
 }
 
@@ -399,15 +398,17 @@ static void Handle_controlData(controlData *tmp, ControlTempParams_t *pxArg)
 		pxArg->xTemp_Struct.uMin = uMinTemp;
 		pxArg->xTemp_Struct.uMax = uMaxTemp;
 
-		/* Disable setValue if present */
+		/* Disable setValue if present and enable setRangeTemp*/
 		pxArg->xTemp_Struct.bValueSet = false;
+		pxArg->xTemp_Struct.bThresholdSet = true;
 
 		/* Send command to uart */
 		setRanges("do=setRangeTemp,", uMinTemp, uMaxTemp);
 
 	/* Reset threshold command */
-	} else if (tmp->pcMinTemp[0] == 'c' && tmp->pcMaxTemp[0] == 'c'){
+	} else if (tmp->pcMinTemp[0] == 'c' || tmp->pcMaxTemp[0] == 'c'){
 		pxArg->xTemp_Struct.bThresholdSet = false;
+		pxArg->xTemp_Struct.bValueSet = false;
 	}
 
 
@@ -418,21 +419,25 @@ static void Handle_controlData(controlData *tmp, ControlTempParams_t *pxArg)
 		pxArg->xHum_Struct.uMin = uMinHum;
 		pxArg->xHum_Struct.uMax = uMaxHum;
 
-		/* Disable setValue if present */
+		/* Disable setValue if present and enable setRangeHum*/
 		pxArg->xHum_Struct.bValueSet = false;
+		pxArg->xHum_Struct.bThresholdSet = true;
 
 
 		/* Send command to uart */
 		setRanges("do=setRangeHum,", uMinHum, uMaxHum);
 
 	/* Reset threshold command */
-	} else if (tmp->pcMinHum[0] == 'c' && tmp->pcMaxHum[0] == 'c'){
+	} else if (tmp->pcMinHum[0] == 'c' || tmp->pcMaxHum[0] == 'c'){
 		pxArg->xHum_Struct.bThresholdSet = false;
+		pxArg->xHum_Struct.bValueSet = false;
+
 	}
 }
 
 void HandleScheduleData(xScheduledTaskParams_t *data, xScheduledTask_t *taskData){
 	uint32_t timeInSeconds, days, hours, minutes, seconds;
+	timeInSeconds = days = hours = minutes = seconds = 0;
 
 	days = (uint32_t) atoi(data->days);
 	hours = (uint32_t) atoi(data->hours);
@@ -464,8 +469,6 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 	while (!(Copy_upto(" HTTP/1.1", buftostoreheader, wifi_uart)));
 
 
-
-
 	/* Values */
 	if (Look_for("/setForm", buftostoreheader) == 1)
 	{
@@ -474,7 +477,7 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 		GetDataFromBuffer("setTemp=", "&", buftostoreheader, strTemp);
 		GetDataFromBuffer("setHum=", "HTTP", buftostoreheader, strHum);
 
-		if (strcmp(strTemp, " ") && ((char)strTemp[0] != '\0'))
+		if (strcmp(strTemp, " ") && ((char)strTemp[0] != '\0') && (char) strTemp[0] != 'c')
 		{
 			/* Set temp */
 			setValue("do=setTemp,", strTemp);
@@ -484,9 +487,10 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 
 		} else if (strTemp[0] ==  'c'){
 			arg->xTemp_Struct.bValueSet = false;
+			arg->xTemp_Struct.bThresholdSet = false;
 		}
 
-		if (strcmp(strHum, " ") && ((char)strHum[0] != '\0'))
+		if (strcmp(strHum, " ") && ((char)strHum[0] != '\0') && (char) strHum[0] != 'c')
 		{
 			/* Set hum */
 			setValue("do=setHum,", strHum);
@@ -496,10 +500,13 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 
 		} else if (strHum[0] ==  'c'){
 			arg->xHum_Struct.bValueSet = false;
+			arg->xHum_Struct.bThresholdSet = false;
 		}
 
 		Server_Handle("/setForm", Link_ID, arg);
 	}
+
+
 	/* Ranges */
 	else if (Look_for("/setRange", buftostoreheader) == 1)
 	{
@@ -521,6 +528,7 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 		Server_Handle("/main", Link_ID, arg);
 	}
 
+
 	/* Turn on and off commands */
 	else if (Look_for("/turnon", buftostoreheader) == 1)
 	{
@@ -535,6 +543,7 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 		Uart_sendstring("do=turnOff.\r\n", device_uart);
 		Server_Handle("/receiveCommand", Link_ID, arg);
 	}
+
 
 	/* Schedule commands */
 	else if (Look_for("/timer", buftostoreheader) == 1)
@@ -553,6 +562,7 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 
 		Server_Handle("/timer", Link_ID, arg);
 	}
+
 
 	/* Special buttons */
 	else if (Look_for("/special1", buftostoreheader) == 1)

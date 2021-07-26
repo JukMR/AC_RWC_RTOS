@@ -67,7 +67,9 @@ void vTaskSendDataThingSpeak(void *pvParameters)
 	uint8_t uBuffer[2];
 	xTask_params_t *pxTmp;
 
+	#if DEBUG
 	volatile UBaseType_t uxHighWaterMark;
+	#endif
 
 	for (;;)
 	{
@@ -77,18 +79,17 @@ void vTaskSendDataThingSpeak(void *pvParameters)
 
 		uBuffer[0] = pxTmp->pxDhtPolledData->uTemperature;
 		uBuffer[1] = pxTmp->pxDhtPolledData->uHumidity;
-
 		vLogDataThingSpeaker("U6123BFR6YNW5I4V", 2, uBuffer);
 
-
+		#if DEBUG
 		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
 		if (uxHighWaterMark < 150 || uxHighWaterMark > 250)
 			Error_Handler();
+		#endif
 
 		if (xTimerStart(*pxTmp->pxTimer, pdMS_TO_TICKS(1500)) == pdFAIL)
 			/* Timer not initialized */
 			Error_Handler();
-
 
 		/* wait 15s between sends */
 		vTaskDelay(pdMS_TO_TICKS(15000));
@@ -100,21 +101,23 @@ void vTaskRefreshWebserver(void *pvParameters)
 {
 	static xRefreshWebServer_t *xParameters;
 
+	#if DEBUG
 	volatile UBaseType_t uxHighWaterMark;
+	#endif
 
 	for (;;)
 	{
-
 		xParameters = (xRefreshWebServer_t *)pvParameters;
 
 		vRefreshWebserver(xParameters->control, xParameters->xSharedArgs);
 
+		#if DEBUG
 		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
 		if (uxHighWaterMark < 50 || uxHighWaterMark > 150)
 			Error_Handler();
+		#endif
 
 		vTaskDelay(pdMS_TO_TICKS(500));
-
 	}
 }
 
@@ -124,25 +127,24 @@ void vTaskControlTempHum(void *pvParameters)
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	ControlTempParams_t *xParam;
 
+	#if DEBUG
 	volatile UBaseType_t uxHighWaterMark;
+	#endif
 
 	for (;;)
 	{
-
 		xParam = (ControlTempParams_t *)pvParameters;
 
 		// Temperature Control
 		// Threshold activated
 		if (xParam->xTemp_Struct.bThresholdSet)
 		{
-
 			// temperature is lower than threshold
 			if (xParam->xDhtPolledData.uTemperature < xParam->xTemp_Struct.uMin)
 			{
 				vSetTemp(xParam->xTemp_Struct.uMax);
-
-			// temperature is higher than threshold
 			}
+			// temperature is higher than threshold
 			else if (xParam->xDhtPolledData.uTemperature > xParam->xTemp_Struct.uMax)
 			{
 				vSetTemp(xParam->xTemp_Struct.uMin);
@@ -167,9 +169,9 @@ void vTaskControlTempHum(void *pvParameters)
 			if (xParam->xDhtPolledData.uHumidity < xParam->xHum_Struct.uMin)
 			{
 				vSetHum(xParam->xHum_Struct.uMax);
+			}
 
 			// temperature is higher than threshold
-			}
 			else if (xParam->xDhtPolledData.uHumidity > xParam->xHum_Struct.uMax)
 			{
 				vSetHum(xParam->xHum_Struct.uMin);
@@ -186,9 +188,11 @@ void vTaskControlTempHum(void *pvParameters)
 		}
 
 
+		#if DEBUG
 		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-		if (uxHighWaterMark < 150)
+		if (uxHighWaterMark < 150 || uxHighWaterMark > 200)
 			Error_Handler();
+		#endif
 
 		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(6000));
 	}
@@ -203,33 +207,34 @@ void vTaskGetDataDHT(void *pvParameters)
 
 	xTask_params_t *xVar;
 
+	#if DEBUG
 	volatile UBaseType_t uxHighWaterMark;
+	#endif
 
 	for (;;)
 	{
 		vTurnLedOn(vLedBlue);
 
-		xVar = (xTask_params_t *)pvParameters;
+		xVar = (xTask_params_t *) pvParameters;
 
 		vReadDHTSensor(xVar->pxDhtPolledData);
 
-
-
+		#if DEBUG
 		/* Log data to uart
 		 *
 		 * These functions could be erased. Debug use only
 		 */
-		#if DEBUG
 		sprintf(buf, "Temp: %u, Hum:%u\r\n", xVar->pxDhtPolledData->uTemperature, xVar->pxDhtPolledData->uHumidity);
 		vSendToUart(buf, uart_command);
 		#endif
 
-		//xSemaphoreGive(xMutex);
 
+		#if DEBUG
 		/* Check stack size is enough */
 		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-		if (uxHighWaterMark < 150)
+		if (uxHighWaterMark < 150 || uxHighWaterMark > 200)
 			Error_Handler();
+		#endif
 
 		if (xTimerStart(*xVar->pxTimer, pdMS_TO_TICKS(1500)) == pdFAIL)
 		{
@@ -284,15 +289,21 @@ void HandleScheduledCommand(char *pcCommand, char *pcArg1, char *pcArg2){
 	}
 
 	else if (!(strcmp(pcCommand, "special1"))){
-		vSendToUart("do=special1.\r\n", uart_command);
+		char buf[64];
+		sprintf(buf, "do=special1,%s,%s.\r\n", pcArg1, pcArg2);
+		vSendToUart(buf, uart_command);
 	}
 
 	else if (!(strcmp(pcCommand, "special2"))){
-		vSendToUart("do=special2.\r\n", uart_command);
+		char buf[64];
+		sprintf(buf, "do=special2,%s,%s.\r\n", pcArg1, pcArg2);
+		vSendToUart(buf, uart_command);
 	}
 
 	else if (!(strcmp(pcCommand, "special3"))){
-		vSendToUart("do=special3.\r\n", uart_command);
+		char buf[64];
+		sprintf(buf, "do=special3,%s,%s.\r\n", pcArg1, pcArg2);
+		vSendToUart(buf, uart_command);
 	}
 }
 
@@ -302,7 +313,6 @@ void vScheduleTask(void * pvParameters){
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-	{
 		cast = (xScheduledTask_t *) pvParameters;
 
 		if (cast->time == 0){
@@ -313,11 +323,11 @@ void vScheduleTask(void * pvParameters){
 
 		HandleScheduledCommand(cast->command, cast->arg1, cast->arg2);
 
-	}
 		vTaskDelete(NULL);
 		/* Function should not reach here */
 		Error_Handler();
-	}
+}
+
 
 void vTaskCreateTimer(void *pvParameters){
 	BaseType_t taskCreated;
@@ -326,7 +336,6 @@ void vTaskCreateTimer(void *pvParameters){
 	xScheduledTask_t tmp = {0};
 
 	for (;;) {
-
 		xSemaphoreTake(xMutex, portMAX_DELAY);
 
 		cast = (xScheduledTask_t *) pvParameters;
@@ -341,7 +350,6 @@ void vTaskCreateTimer(void *pvParameters){
 			/* Task not created */
 			Error_Handler();
 		}
-
 	}
 }
 
@@ -350,7 +358,6 @@ void vTaskCreateTimer(void *pvParameters){
 void prvTimerCallbackHandler(TimerHandle_t xTimer)
 {
 	uint32_t uTimerID;
-
 	uTimerID = ( uint32_t ) pvTimerGetTimerID( xTimer );
 
 	if      (uTimerID == 1)	    vTurnLedOff(vLedBlue);
@@ -449,7 +456,8 @@ int main(void)
 
 	/* We should never get here as control is now taken by the scheduler */
 	/* Infinite loop */
-	for (;;);
+	for (;;)
+		Error_Handler();
 }
 
 /**
