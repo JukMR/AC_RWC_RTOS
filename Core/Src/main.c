@@ -21,9 +21,13 @@
 /* Standart libraries includes */
 #include "stdio.h"
 #include "stdbool.h"
+#include "string.h"
+#include <stdlib.h>
 
 /* RTOS Includes */
+#ifndef RTOS_H
 #include "FreeRTOS.h"
+#endif
 #include "task.h"
 #include "semphr.h"
 #include "timers.h"
@@ -31,7 +35,9 @@
 /* Include BSP layer */
 #include "bsp.h"
 
+#include "customTypes.h"
 
+#define DEBUG 1
 
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
@@ -46,29 +52,28 @@ void *vLedGreen;
 
 SemaphoreHandle_t xMutex;
 
-typedef struct
-{
+/* Struct define */
+typedef struct {
 	DHT_DataTypedef *pxDhtPolledData;
 	TimerHandle_t *pxTimer;
-} xTask_params;
+} xTask_params_t;
 
 
 
 /* Functions declarations */
-void vSendDataThingSpeakTask(void *pvParameters)
+void vTaskSendDataThingSpeak(void *pvParameters)
 {
 
 	uint8_t uBuffer[2];
-	xTask_params *pxTmp;
+	xTask_params_t *pxTmp;
 
 	volatile UBaseType_t uxHighWaterMark;
 
 	for (;;)
 	{
 		vTurnLedOn(vLedOrange);
-		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
 
-		pxTmp = (xTask_params *)pvParameters;
+		pxTmp = (xTask_params_t *)pvParameters;
 
 		uBuffer[0] = pxTmp->pxDhtPolledData->uTemperature;
 		uBuffer[1] = pxTmp->pxDhtPolledData->uHumidity;
@@ -77,7 +82,7 @@ void vSendDataThingSpeakTask(void *pvParameters)
 
 
 		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-		if (uxHighWaterMark < 150)
+		if (uxHighWaterMark < 150 || uxHighWaterMark > 250)
 			Error_Handler();
 
 		if (xTimerStart(*pxTmp->pxTimer, pdMS_TO_TICKS(1500)) == pdFAIL)
@@ -91,45 +96,40 @@ void vSendDataThingSpeakTask(void *pvParameters)
 }
 
 
-void vRefreshWebserverTask(void *pvParameters)
+void vTaskRefreshWebserver(void *pvParameters)
 {
-	ControlTempParams *xControl;
+	static xRefreshWebServer_t *xParameters;
 
 	volatile UBaseType_t uxHighWaterMark;
 
 	for (;;)
 	{
-		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
 
-		xControl = (ControlTempParams *)pvParameters;
-		//xSemaphoreTake(xMutex, portMAX_DELAY);
+		xParameters = (xRefreshWebServer_t *)pvParameters;
 
-		vRefreshWebserver(xControl);
+		vRefreshWebserver(xParameters->control, xParameters->xSharedArgs);
 
 		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-		if (uxHighWaterMark < 150)
+		if (uxHighWaterMark < 50 || uxHighWaterMark > 150)
 			Error_Handler();
 
 		vTaskDelay(pdMS_TO_TICKS(500));
 
-		//xSemaphoreGive(xMutex);
 	}
 }
 
 
-void vControlTempHum(void *pvParameters)
+void vTaskControlTempHum(void *pvParameters)
 {
 	TickType_t xLastWakeTime = xTaskGetTickCount();
-	ControlTempParams *xParam;
+	ControlTempParams_t *xParam;
 
 	volatile UBaseType_t uxHighWaterMark;
 
 	for (;;)
 	{
-		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
 
-		// xSemaphoreTake( xMutex, portMAX_DELAY );
-		xParam = (ControlTempParams *)pvParameters;
+		xParam = (ControlTempParams_t *)pvParameters;
 
 		// Temperature Control
 		// Threshold activated
@@ -201,16 +201,15 @@ void vTaskGetDataDHT(void *pvParameters)
 	char buf[30];
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-	xTask_params *xVar;
+	xTask_params_t *xVar;
 
 	volatile UBaseType_t uxHighWaterMark;
 
 	for (;;)
 	{
 		vTurnLedOn(vLedBlue);
-		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
 
-		xVar = (xTask_params *)pvParameters;
+		xVar = (xTask_params_t *)pvParameters;
 
 		vReadDHTSensor(xVar->pxDhtPolledData);
 
@@ -220,8 +219,10 @@ void vTaskGetDataDHT(void *pvParameters)
 		 *
 		 * These functions could be erased. Debug use only
 		 */
+		#if DEBUG
 		sprintf(buf, "Temp: %u, Hum:%u\r\n", xVar->pxDhtPolledData->uTemperature, xVar->pxDhtPolledData->uHumidity);
 		vSendToUart(buf, uart_command);
+		#endif
 
 		//xSemaphoreGive(xMutex);
 
@@ -237,6 +238,105 @@ void vTaskGetDataDHT(void *pvParameters)
 		}
 
 		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(3000));
+	}
+}
+
+
+void HandleScheduledCommand(char *pcCommand, char *pcArg1, char *pcArg2){
+	if (!(strcmp(pcCommand, "turnOff"))){
+		vSendToUart("do=turnOff.\r\n", uart_command);
+	}
+
+	else if (!(strcmp(pcCommand, "turnOn"))){
+		vSendToUart("do=turnOn.\r\n", uart_command);
+	}
+
+	else if (!(strcmp(pcCommand, "setTemp"))){
+		char buf[32];
+		uint8_t uArg1 = atoi(pcArg1);
+		uint8_t uArg2 = atoi(pcArg2);
+		sprintf(buf, "do=setTemp,%u,%u.\r\n", uArg1, uArg2);
+		vSendToUart(buf, uart_command);
+	}
+
+	else if (!(strcmp(pcCommand, "setHum"))){
+		char buf[32];
+		uint8_t uArg1 = atoi(pcArg1);
+		uint8_t uArg2 = atoi(pcArg2);
+		sprintf(buf, "do=setHum,%u,%u.\r\n", uArg1, uArg2);
+		vSendToUart(buf, uart_command);
+	}
+
+	else if (!(strcmp(pcCommand, "setRangeTemp"))){
+		char buf[32];
+		uint8_t uArg1 = atoi(pcArg1);
+		uint8_t uArg2 = atoi(pcArg2);
+		sprintf(buf, "setRangeTemp,%u,%u.\r\n", uArg1, uArg2);
+		vSendToUart(buf, uart_command);
+	}
+
+	else if (!(strcmp(pcCommand, "setRangeHum"))){
+		char buf[32];
+		uint8_t uArg1 = atoi(pcArg1);
+		uint8_t uArg2 = atoi(pcArg2);
+		sprintf(buf, "setRangeHum,%u,%u.\r\n", uArg1, uArg2);
+		vSendToUart(buf, uart_command);
+	}
+
+	else if (!(strcmp(pcCommand, "special1"))){
+		vSendToUart("do=special1.\r\n", uart_command);
+	}
+
+	else if (!(strcmp(pcCommand, "special2"))){
+		vSendToUart("do=special2.\r\n", uart_command);
+	}
+
+	else if (!(strcmp(pcCommand, "special3"))){
+		vSendToUart("do=special3.\r\n", uart_command);
+	}
+}
+
+
+void vScheduleTask(void * pvParameters){
+	xScheduledTask_t *cast;
+
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+
+	{
+		cast = (xScheduledTask_t *) pvParameters;
+
+		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(cast->time * 1000));
+		HandleScheduledCommand(cast->command, cast->arg1, cast->arg2);
+
+	}
+		vTaskDelete(NULL);
+		/* Function should not reach here */
+		Error_Handler();
+	}
+
+void vTaskCreateTimer(void *pvParameters){
+	BaseType_t taskCreated;
+	TaskHandle_t xHandle = NULL;
+	xScheduledTask_t *cast ;
+	xScheduledTask_t tmp = {0};
+
+	for (;;) {
+
+		xSemaphoreTake(xMutex, portMAX_DELAY);
+
+		cast = (xScheduledTask_t *) pvParameters;
+		strcpy(&(tmp.command), cast->command);
+		strcpy(&(tmp.arg1), cast->arg1);
+		strcpy(&(tmp.arg2), cast->arg2);
+		tmp.time = cast->time;
+
+		taskCreated = xTaskCreate(vScheduleTask, "Demo", 200, &tmp, 3, &xHandle);
+
+		if (taskCreated == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY){
+			/* Task not created */
+			Error_Handler();
+		}
+
 	}
 }
 
@@ -261,7 +361,7 @@ int main(void)
 
 	/* Initialize some params */
 
-	static ControlTempParams xParam;
+	static ControlTempParams_t xParam;
 
 	xParam.xDhtPolledData.uHumidity = 10;
 	xParam.xDhtPolledData.uTemperature = 10;
@@ -276,10 +376,12 @@ int main(void)
 	xParam.xTemp_Struct.bThresholdSet = true;
 	xParam.xHum_Struct.bValueSet = false;
 
-	int iRes1, iRes2, iRes3, iRes4;
-	iRes1 = iRes2 = iRes3 = iRes4 = 0;
+	int iRes1, iRes2, iRes3, iRes4, iRes5;
+	iRes1 = iRes2 = iRes3 = iRes4 = iRes5 = 0;
 
-//	xMutex = xSemaphoreCreateMutex();
+	xMutex = xSemaphoreCreateBinary();
+	// Check out this
+	xSemaphoreTake(xMutex, 0);
 
 	/* Start timers */
 	static TimerHandle_t xBlinkBlueLed, xBlinkOrangeLed;
@@ -299,8 +401,9 @@ int main(void)
 		Error_Handler();
 	}
 
+
 	/* Start static variables */
-	static xTask_params xTask1Args, xTask2Args;
+	static xTask_params_t xTask1Args, xTask2Args;
 
 	xTask1Args.pxDhtPolledData = &xParam.xDhtPolledData;
 	xTask1Args.pxTimer = &xBlinkBlueLed;
@@ -308,17 +411,31 @@ int main(void)
 	xTask2Args.pxDhtPolledData = &xParam.xDhtPolledData;
 	xTask2Args.pxTimer = &xBlinkOrangeLed;
 
-//	if (xMutex != NULL)
-	{
+	/* Start SchedulerTask variables */
+	xRefreshWebServer_t *xRefreshVar = calloc(1, sizeof(xRefreshWebServer_t));
+	xScheduledTask_t *xSharedArgs = calloc(1, sizeof(xScheduledTask_t));
 
+
+	strcpy(xSharedArgs->command, "turnOff");
+	strcpy(xSharedArgs->arg1, "23");
+	strcpy(xSharedArgs->arg2, "32");
+	xSharedArgs->time = 5u;
+
+	xRefreshVar->xSharedArgs = xSharedArgs;
+	xRefreshVar->control = &xParam;
+
+
+	if (xMutex != NULL)
+	{
 		iRes1 = xTaskCreate(vTaskGetDataDHT, "vTaskGetData", 300, &xTask1Args, 4, NULL);
-		iRes2 = xTaskCreate(vSendDataThingSpeakTask, "SendDataThingSpeak", 500, &xTask2Args, 3, NULL);
-		iRes3 = xTaskCreate(vControlTempHum, "controlTemp", 300, &xParam, 2, NULL);
-		iRes4 = xTaskCreate(vRefreshWebserverTask, "RefreshWebserver", 1450, &xParam, 1, NULL);
+//		iRes2 = xTaskCreate(vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 500, &xTask2Args, 3, NULL);
+//		iRes3 = xTaskCreate(vTaskControlTempHum, "vTaskControlTempHum", 300, &xParam, 2, NULL);
+		iRes4 = xTaskCreate(vTaskRefreshWebserver, "RefreshWebserver", 1450, xRefreshVar, 1, NULL);
+		iRes5 = xTaskCreate(vTaskCreateTimer, "vCreateTimerTask", 300, xSharedArgs, 3, NULL);
 	}
 
 	/* Check all task were created correctly */
-	if (!((iRes1 == pdPASS) && (iRes2 == pdPASS) && (iRes3 == pdPASS) && (iRes4 == pdPASS)))
+	if (!((iRes1 == pdPASS) && (1 == pdPASS) && (1 == pdPASS) && (iRes4 == pdPASS )&& (iRes5 == pdPASS)))
 	{
 		Error_Handler();
 	}

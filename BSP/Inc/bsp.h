@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include "main.h"
 
+#include "customTypes.h"
+
 typedef struct
 {
 	char pcMinTemp[8];
@@ -34,7 +36,26 @@ typedef struct
   DHT_DataTypedef xDhtPolledData;
   Threshold_TypeDef xTemp_Struct;
   Threshold_TypeDef xHum_Struct;
-} ControlTempParams;
+} ControlTempParams_t;
+
+typedef struct
+{
+  char command[16];
+  char days[16];
+  char hours[16];
+  char minutes[16];
+  char seconds[16];
+  char param1[16];
+  char param2[16];
+
+}xScheduledTaskParams_t;
+
+typedef struct {
+	ControlTempParams_t *control;
+	xScheduledTask_t *xSharedArgs;
+} xRefreshWebServer_t;
+
+
 
 void vSetTemp(uint8_t Value);
 
@@ -52,7 +73,7 @@ void BSP_Init(void);
 
 void vConnectWifi_StaticIp(char *ssid, char *pass, char *ip);
 
-void vRefreshWebserver(ControlTempParams *arg);
+void vRefreshWebserver(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs);
 
 void vReadDHTSensor(DHT_DataTypedef *dataStruct);
 
