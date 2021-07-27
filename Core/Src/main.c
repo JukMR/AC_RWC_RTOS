@@ -37,7 +37,7 @@
 
 #include "customTypes.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
@@ -74,7 +74,7 @@ void vTaskSendDataThingSpeak( void *pvParameters )
 
 	for (;;)
 	{
-		xSemaphoreTake(xMutexEsp8266, portMAX_DELAY);
+		// xSemaphoreTake(xMutexEsp8266, portMAX_DELAY);
 
 		vTurnLedOn( vLedOrange );
 
@@ -94,7 +94,7 @@ void vTaskSendDataThingSpeak( void *pvParameters )
 			/* Timer not initialized */
 			Error_Handler();
 
-		xSemaphoreGive(xMutexEsp8266);
+		// xSemaphoreGive(xMutexEsp8266);
 
 		/* wait 15s between sends */
 		vTaskDelay( pdMS_TO_TICKS( 15000 ) );
@@ -114,7 +114,7 @@ void vTaskRefreshWebserver( void *pvParameters )
 	{
 		xParameters = ( xRefreshWebServer_t * ) pvParameters;
 
-		xSemaphoreTake(xMutexEsp8266, portMAX_DELAY);
+		// xSemaphoreTake(xMutexEsp8266, portMAX_DELAY);
 
 		vRefreshWebserver( xParameters->control, xParameters->xSharedArgs );
 
@@ -124,7 +124,7 @@ void vTaskRefreshWebserver( void *pvParameters )
 			Error_Handler();
 		#endif
 
-		xSemaphoreGive(xMutexEsp8266);
+		// xSemaphoreGive(xMutexEsp8266);
 
 		vTaskDelay( pdMS_TO_TICKS( 500 ) );
 	}
@@ -268,7 +268,8 @@ void vTaskGetDataDHT( void *pvParameters )
 
 
 void HandleScheduledCommand( char *pcCommand, char *pcArg1, char *pcArg2 ){
-	if ( !( strcmp( pcCommand, "turnOff" ) ) ) {
+
+	if ( !(strcmp( pcCommand, "turnOff" )) ) {
 		vSendToUart("do=turnOff.\r\n", uart_command);
 	}
 
@@ -341,7 +342,7 @@ void vScheduleTask( void * pvParameters ){
 			vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( cast->time * 1000 ) );
 
 
-		HandleScheduledCommand( cast->command, cast->arg1, cast->arg2 );
+		HandleScheduledCommand( &cast->command, &cast->arg1, &cast->arg2 );
 
 		vTaskDelete( NULL );
 		/* Function should not reach here */
@@ -359,9 +360,9 @@ void vTaskCreateTimer( void *pvParameters ){
 		xSemaphoreTake ( xSemaphoreOneShotTask, portMAX_DELAY );
 
 		cast = ( xScheduledTask_t * ) pvParameters;
-		strcpy( &( tmp.command ), cast->command );
-		strcpy( &( tmp.arg1 ), cast->arg1 );
-		strcpy( &( tmp.arg2 ), cast->arg2 );
+		strcpy( &( tmp.command ), &cast->command );
+		strcpy( &( tmp.arg1 ), &cast->arg1 );
+		strcpy( &( tmp.arg2 ), &cast->arg2 );
 		tmp.time = cast->time;
 
 		taskCreated = xTaskCreate(vScheduleTask, "Demo", 200, &tmp, 3, &xHandle);
@@ -455,9 +456,9 @@ int main( void )
 	xScheduledTask_t *xSharedArgs = calloc( 1, sizeof( xScheduledTask_t ) );
 
 
-	strcpy( xSharedArgs->command, "turnOff" );
-	strcpy( xSharedArgs->arg1, "23" );
-	strcpy( xSharedArgs->arg2, "32" );
+	strcpy( &xSharedArgs->command, "turnOff" );
+	strcpy( &xSharedArgs->arg1, "23" );
+	strcpy( &xSharedArgs->arg2, "32" );
 	xSharedArgs->time = 5u;
 
 	xRefreshVar->xSharedArgs = xSharedArgs;

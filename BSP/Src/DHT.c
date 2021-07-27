@@ -104,8 +104,11 @@ uint8_t DHT_Check_Response (void)
 {
 	uint8_t Response = 0;
 
+	/* New code */
 	uint32_t timeout = 1000000;
 	uint32_t cnt = 0;
+	/* End new code */
+
 	int res;
 	delay (40);
 	if (!(HAL_GPIO_ReadPin (DHT_PORT, DHT_PIN)))
@@ -114,6 +117,8 @@ uint8_t DHT_Check_Response (void)
 		if ((HAL_GPIO_ReadPin (DHT_PORT, DHT_PIN))) Response = 1;
 		else Response = -1;
 	}
+
+	/* New code */
 
 	while (1){
 		res = (HAL_GPIO_ReadPin (DHT_PORT, DHT_PIN));
@@ -126,6 +131,8 @@ uint8_t DHT_Check_Response (void)
 			}
 		}
 	}
+	/* End new code */
+
 //	while ((HAL_GPIO_ReadPin (DHT_PORT, DHT_PIN)));   // wait for the pin to go low
 
 	return Response;

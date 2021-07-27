@@ -223,27 +223,16 @@ int Server_Send(char *str, int Link_ID)
 	Uart_sendstring(data, wifi_uart);
 
 
-//	while (!(Wait_for(">", wifi_uart)));
-	if (!(wait_timeout(">", wifi_uart, 10000000))) {
-		goto reset;
-	}
+	while (!(Wait_for(">", wifi_uart)));
 	Uart_sendstring(str, wifi_uart);
 
-//	while (!(Wait_for("SEND OK", wifi_uart)));
-	if (!(wait_timeout("SEND OK", wifi_uart, 10000000))) {
-		goto reset;
-	}
+	while (!(Wait_for("SEND OK", wifi_uart)));
 	Uart_flush(wifi_uart);
 	sprintf(data, "AT+CIPCLOSE=%d\r\n", Link_ID);
 	Uart_sendstring(data, wifi_uart);
 
-//	while (!(Wait_for("OK\r\n", wifi_uart)));
-	if (!(wait_timeout("OK\r\n", wifi_uart, 10000000))) {
-		goto reset;
-	}
+	while (!(Wait_for("OK\r\n", wifi_uart)));
 
-reset:
-	return 1;
 }
 
 
@@ -479,15 +468,15 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 	char buftostoreheader[300] = {0};
 	char Link_ID;
 
-	res = Get_after_timeout( "+IPD,", 1, &Link_ID, wifi_uart, (uint32_t) -1 );
+//	res = Get_after_timeout( "+IPD,", 1, &Link_ID, wifi_uart, (uint32_t) -1 );
+//
+//	if (res == WAIT_OK){
+//		(void)0;
+//	} else if (res == WAIT_TIMEOUT){
+//		goto timeout;
+//	}
 
-	if (res == WAIT_OK){
-		(void)0;
-	} else if (res == WAIT_TIMEOUT){
-		goto timeout;
-	}
-
-//	while ((!(Get_after("+IPD,", 1, &Link_ID, wifi_uart))) || cnt++ > timeout);
+	while ((!(Get_after("+IPD,", 1, &Link_ID, wifi_uart))));
 
 	Link_ID -= 48;
 	while (!(Copy_upto(" HTTP/1.1", buftostoreheader, wifi_uart)));
