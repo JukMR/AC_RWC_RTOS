@@ -360,6 +360,31 @@ int Get_after (char *string, uint8_t numberofchars, char *buffertosave, UART_Han
 	return 1;
 }
 
+int Get_after_timeout (char *string, uint8_t numberofchars, char *buffertosave, UART_HandleTypeDef *uart, uint32_t times)
+{
+
+//	while (Wait_for(string, uart) != 1);
+	int res;
+
+	res = Wait_for_timeout(string, uart, 1000000);
+	if (res == WAIT_TIMEOUT) {
+		return WAIT_TIMEOUT;
+	} else if (res == WAIT_OK) {
+		(void)0;
+	} else {
+		while(1){
+			(void)0;
+		}
+	}
+
+	for (int indx=0; indx<numberofchars; indx++)
+	{
+		while (!(IsDataAvailable(uart)));
+		buffertosave[indx] = Uart_read(uart);
+	}
+	return 1;
+}
+
 
 int Wait_for (char *string, UART_HandleTypeDef *uart)
 {

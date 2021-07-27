@@ -40,13 +40,13 @@ typedef struct
 
 typedef struct
 {
-  char command[16];
-  char days[16];
-  char hours[16];
-  char minutes[16];
-  char seconds[16];
-  char param1[16];
-  char param2[16];
+  char command[ 16 ];
+  char days[ 16 ];
+  char hours[ 16 ];
+  char minutes[ 16 ];
+  char seconds[ 16 ];
+  char param1[ 16 ];
+  char param2[ 16 ];
 
 }xScheduledTaskParams_t;
 

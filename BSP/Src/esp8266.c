@@ -40,7 +40,7 @@ extern UART_HandleTypeDef huart2;
 #define WAIT_OK 1
 #define WAIT_ERROR 2
 
-extern SemaphoreHandle_t xMutex;
+extern SemaphoreHandle_t xSemaphoreOneShotTask;
 
 char buffer[64];
 
@@ -221,13 +221,28 @@ int Server_Send(char *str, int Link_ID)
 	Uart_flush(wifi_uart);
 	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, len);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for(">", wifi_uart)));
+
+
+//	while (!(Wait_for(">", wifi_uart)));
+	if (!(wait_timeout(">", wifi_uart, 10000000))) {
+		goto reset;
+	}
 	Uart_sendstring(str, wifi_uart);
-	while (!(Wait_for("SEND OK", wifi_uart)));
+
+//	while (!(Wait_for("SEND OK", wifi_uart)));
+	if (!(wait_timeout("SEND OK", wifi_uart, 10000000))) {
+		goto reset;
+	}
 	Uart_flush(wifi_uart);
 	sprintf(data, "AT+CIPCLOSE=%d\r\n", Link_ID);
 	Uart_sendstring(data, wifi_uart);
-	while (!(Wait_for("OK\r\n", wifi_uart)));
+
+//	while (!(Wait_for("OK\r\n", wifi_uart)));
+	if (!(wait_timeout("OK\r\n", wifi_uart, 10000000))) {
+		goto reset;
+	}
+
+reset:
 	return 1;
 }
 
@@ -307,7 +322,9 @@ int Server_Send_main(char *start, char *end, char *timers, int Link_ID, DHT_Data
 //	while (!(Wait_for("OK\r\n", wifi_uart)));
 	if (!(wait_timeout("OK\r\n", wifi_uart, 10000000))) goto reset;
 
+	return 1;
 reset:
+	Uart_flush(wifi_uart);
 	return 1;
 }
 
@@ -450,20 +467,27 @@ void HandleScheduleData(xScheduledTaskParams_t *data, xScheduledTask_t *taskData
 	strcpy(taskData->arg1, data->param1);
 	strcpy(taskData->arg2, data->param2);
 	taskData->time = timeInSeconds;
-	if( xSemaphoreGive( xMutex ) != pdTRUE ){
+	if( xSemaphoreGive( xSemaphoreOneShotTask ) != pdTRUE ){
 		/* Error, cannot give Semaphore */
 		Error_Handler();
 	}
-
-
-
 }
 
 void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 {
+	int res;
 	char buftostoreheader[300] = {0};
 	char Link_ID;
-	while (!(Get_after("+IPD,", 1, &Link_ID, wifi_uart)));
+
+	res = Get_after_timeout( "+IPD,", 1, &Link_ID, wifi_uart, (uint32_t) -1 );
+
+	if (res == WAIT_OK){
+		(void)0;
+	} else if (res == WAIT_TIMEOUT){
+		goto timeout;
+	}
+
+//	while ((!(Get_after("+IPD,", 1, &Link_ID, wifi_uart))) || cnt++ > timeout);
 
 	Link_ID -= 48;
 	while (!(Copy_upto(" HTTP/1.1", buftostoreheader, wifi_uart)));
@@ -593,6 +617,8 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 	{
 		Server_Handle("/main", Link_ID, arg);
 	}
+timeout:
+	(void)0;
 }
 
 

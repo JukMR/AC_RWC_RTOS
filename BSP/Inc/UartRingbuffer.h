@@ -84,6 +84,8 @@ int Copy_upto (char *string, char *buffertocopyinto, UART_HandleTypeDef *uart);
 */
 int Get_after (char *string, uint8_t numberofchars, char *buffertosave, UART_HandleTypeDef *uart);
 
+int Get_after_timeout (char *string, uint8_t numberofchars, char *buffertosave, UART_HandleTypeDef *uart, uint32_t times);
+
 
 /* Wait until a paricular string is detected in the Rx Buffer
 * Return 1 on success and -1 otherwise

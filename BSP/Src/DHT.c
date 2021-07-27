@@ -103,6 +103,10 @@ void DHT_Start (void)
 uint8_t DHT_Check_Response (void)
 {
 	uint8_t Response = 0;
+
+	uint32_t timeout = 1000000;
+	uint32_t cnt = 0;
+	int res;
 	delay (40);
 	if (!(HAL_GPIO_ReadPin (DHT_PORT, DHT_PIN)))
 	{
@@ -110,7 +114,19 @@ uint8_t DHT_Check_Response (void)
 		if ((HAL_GPIO_ReadPin (DHT_PORT, DHT_PIN))) Response = 1;
 		else Response = -1;
 	}
-	while ((HAL_GPIO_ReadPin (DHT_PORT, DHT_PIN)));   // wait for the pin to go low
+
+	while (1){
+		res = (HAL_GPIO_ReadPin (DHT_PORT, DHT_PIN));
+
+		if (res == 0) {
+		break;
+		} else if (res != 0){
+			if (cnt++ > timeout){
+				return 3;
+			}
+		}
+	}
+//	while ((HAL_GPIO_ReadPin (DHT_PORT, DHT_PIN)));   // wait for the pin to go low
 
 	return Response;
 }
@@ -136,8 +152,12 @@ uint8_t DHT_Read (void)
 
 void DHT_GetData (DHT_DataTypedef *DHT_Data)
 {
+start:
     DHT_Start ();
     Presence = DHT_Check_Response ();
+    if (Presence == 3){
+    	goto start;
+    }
 	Rh_byte1 = DHT_Read ();
 	Rh_byte2 = DHT_Read ();
 	Temp_byte1 = DHT_Read ();

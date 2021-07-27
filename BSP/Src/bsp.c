@@ -29,14 +29,14 @@ void vSetHum(uint8_t Value)
 void vTurnOn()
 {
     char buffer[20] = {0};
-    sprintf(buffer, "do=turnon.\r\n");
+    sprintf(buffer, "do=turnOn.\r\n");
     Uart_sendstring(buffer, uart_command);
 }
 
 void vTurnOff()
 {
     char buffer[20] = {0};
-    sprintf(buffer, "do=turnoff.\r\n");
+    sprintf(buffer, "do=turnOff.\r\n");
     Uart_sendstring(buffer, uart_command);
 }
 

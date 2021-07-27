@@ -10,9 +10,9 @@
 
 
 typedef struct {
-	char command[16];
-	char arg1[16];
-	char arg2[16];
+	char command;
+	char arg1;
+	char arg2;
 	uint32_t time;
 } xScheduledTask_t;
 
