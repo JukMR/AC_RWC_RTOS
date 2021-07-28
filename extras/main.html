@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset="UTF 8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title Servidor Esp8266></title>
+</head>
+
+<body>
+    <div style="text-align: center;">
+
+        <h1> Servidor Esp8266 con DHT11</h1>
+        <div>
+
+            <h2> Encendido/Apagado</h2>
+            <button onclick=location.href="turnon"> Encender AC </button>
+            &nbsp;&nbsp;
+            <button onclick=location.href="turnoff"> Apagar AC </button>
+
+        </div>
+
+        <div>
+            <h2>Temperatura actual: 20</h2>
+            <h2>Humedad actual es: 20</h2>
+        </div>
+
+        <form action="/setForm">
+            <h2> Elegir temperatura </h2>
+            <label for="temp"> Temperatura: </label>
+            <input type="text" id="idSetTemp" name="setTemp" value=""> <br> </br>
+
+            <h2> Elegir humedad </h2>
+            <label for="hum"> Humedad: </label>
+            <input type="text" id="idSetHum" name="setHum" value=""> <br> </br>
+            <input type="submit" value="Set Values">
+
+        </form>
+
+        <h2>Elegir rangos</h2>
+        <form action="/setRange">
+
+            <p> Temperature Range </p>
+            <i>(Value between 0 and 50)</i><br></br>
+
+            <label for="minTemp">Minimum:</label>
+            <input type="text" id="minTemp" name="minTemp" value=""><br></br>
+
+            <label for="maxTemp">Maximum:</label>
+            <input type="text" id="maxTemp" name="maxTemp" value=""><br><br>
+
+
+            <p> Humidity Range </p>
+            <i>(Value between 5 and 95)</i><br></br>
+
+            <label for="minHum">Minimum:</label>
+            <input type="text" id="minHum" name="minHum" value=""><br></br>
+
+            <label for="maxHum">Maximum:</label>
+            <input type="text" id="maxHum" name="maxHum" value=""><br><br>
+            <input type="submit" value="Set Ranges">
+
+        </form><br><br>
+
+        <button onclick=location.href="https://thingspeak.com/channels/1439978"> Watch thingSpeak data</button> <br>
+        <br>
+
+        <div>
+            <h2> Special buttons for general use </h2>
+            <button onclick=location.href="special1"> Special 1 </button>
+            <button onclick=location.href="special2"> Special 2 </button>
+            <button onclick=location.href="special3"> Special 3 </button>
+            <br></br>
+        </div>
+    <div>
+        <h2> Program a command to be executed in the future </h2>
+        <form action="timer">
+        <label for="com">Choose a command:</label>
+
+        <select name="com" id="com">
+            <option value="turnOn">turnOn</option>
+            <option value="turnOff">turnOff</option>
+            <option value="setTemp">setTemp</option>
+            <option value="setHum">setHum</option>
+            <option value="setRangeTemp">setRangeTemp</option>
+            <option value="setRangeHum">setRangeHum</option>
+            <option value="special1">special1</option>
+            <option value="special2">special2</option>
+            <option value="special3">special3</option>
+        </select>
+        <br></br>
+        <label for="days">Insert days of delay</label>
+        <input type="text" id="days" name="days" value=""><br><br>
+
+        <label for="hs">Insert hours of delay</label>
+        <input type="text" id="hs" name="hs" value=""><br><br>
+
+        <label for="min">Insert minutes of delay</label>
+        <input type="text" id="min" name="min" value=""><br><br>
+
+        <label for="sec">Insert seconds of delay</label>
+        <input type="text" id="sec" name="sec" value=""><br><br>
+
+        <label for="arg">Insert args here if the action requires it:</label>
+        <br><br>
+        <input type="text" id="arg1" name="arg1" value="">
+        <input type="text" id="arg2" name="arg2" value="">
+        <input type="submit" value="Queue command ">
+    </form>
+    </div>
+</div>
+</body>
+</html>
