@@ -224,7 +224,10 @@ void USART6_IRQHandler(void)
   /* USER CODE END USART6_IRQn 0 */
 //  HAL_UART_IRQHandler(&huart6);
   /* USER CODE BEGIN USART6_IRQn 1 */
-  Uart_isr(&huart6);
+//  Uart_isr(&huart6);
+
+	/* Execution should get here, uart not used */
+	Error_Handler();
   /* USER CODE END USART6_IRQn 1 */
 }
 

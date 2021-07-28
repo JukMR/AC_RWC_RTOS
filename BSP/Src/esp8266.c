@@ -212,6 +212,9 @@ void ESP_Init(char *SSID, char *PASSWD, char *STAIP)
 	Uart_flush(wifi_uart);
 	Uart_sendstring("AT+CIPSERVER=1,80\r\n", wifi_uart);
 	while (!(Wait_for("OK\r\n", wifi_uart)));
+
+	Uart_flush(wifi_uart);
+	HAL_Delay(200);
 }
 
 int Server_Send(char *str, int Link_ID)
@@ -232,6 +235,7 @@ int Server_Send(char *str, int Link_ID)
 	Uart_sendstring(data, wifi_uart);
 
 	while (!(Wait_for("OK\r\n", wifi_uart)));
+	return 1;
 
 }
 
@@ -464,7 +468,7 @@ void HandleScheduleData(xScheduledTaskParams_t *data, xScheduledTask_t *taskData
 
 void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 {
-	int res;
+//	int res;
 	char buftostoreheader[300] = {0};
 	char Link_ID;
 
@@ -476,7 +480,7 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 //		goto timeout;
 //	}
 
-	while ((!(Get_after("+IPD,", 1, &Link_ID, wifi_uart))));
+	while (!(Get_after("+IPD,", 1, &Link_ID, wifi_uart)));
 
 	Link_ID -= 48;
 	while (!(Copy_upto(" HTTP/1.1", buftostoreheader, wifi_uart)));
@@ -606,8 +610,8 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 	{
 		Server_Handle("/main", Link_ID, arg);
 	}
-timeout:
-	(void)0;
+//timeout:
+//	(void)0;
 }
 
 

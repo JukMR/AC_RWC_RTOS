@@ -37,7 +37,7 @@
 
 #include "customTypes.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
@@ -86,7 +86,7 @@ void vTaskSendDataThingSpeak( void *pvParameters )
 
 		#if DEBUG
 		uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
-		if ( uxHighWaterMark < 150 || uxHighWaterMark > 250 )
+		if ( uxHighWaterMark < 100 || uxHighWaterMark > 250 )
 			Error_Handler();
 		#endif
 
@@ -206,7 +206,7 @@ void vTaskControlTempHum( void *pvParameters )
 
 		#if DEBUG
 		uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
-		if ( uxHighWaterMark < 150 || uxHighWaterMark > 200 )
+		if ( uxHighWaterMark < 50 || uxHighWaterMark > 250 )
 			Error_Handler();
 		#endif
 
@@ -221,7 +221,7 @@ void vTaskGetDataDHT( void *pvParameters )
 	char buf[ 30 ];
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-	xTask_params_t *xVar;
+	xTimerHandle *xTimer;
 
 	DHT_DataTypedef tmp;
 
@@ -233,7 +233,7 @@ void vTaskGetDataDHT( void *pvParameters )
 	{
 		vTurnLedOn( vLedBlue );
 
-		xVar = ( xTask_params_t * ) pvParameters;
+		xTimer = ( xTimerHandle * ) pvParameters;
 
 		vReadDHTSensor( &tmp );
 
@@ -256,7 +256,7 @@ void vTaskGetDataDHT( void *pvParameters )
 			Error_Handler();
 		#endif
 
-		if ( xTimerStart( *xVar->pxTimer, pdMS_TO_TICKS( 1500 ) ) == pdFAIL )
+		if ( xTimerStart( *xTimer, pdMS_TO_TICKS( 1500 ) ) == pdFAIL )
 		{
 			/* Timer not initialized */
 			Error_Handler();
@@ -329,7 +329,7 @@ void HandleScheduledCommand( char *pcCommand, char *pcArg1, char *pcArg2 ){
 }
 
 
-void vScheduleTask( void * pvParameters ){
+void vDelayTask( void * pvParameters ){
 	xScheduledTask_t *cast;
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -350,10 +350,10 @@ void vScheduleTask( void * pvParameters ){
 }
 
 
-void vTaskCreateTimer( void *pvParameters ){
+void vTaskDelayedCommand( void *pvParameters ){
 	BaseType_t taskCreated;
 	TaskHandle_t xHandle = NULL;
-	xScheduledTask_t *cast ;
+	xScheduledTask_t *cast;
 	xScheduledTask_t tmp = {0};
 
 	for (;;) {
@@ -365,7 +365,7 @@ void vTaskCreateTimer( void *pvParameters ){
 		strcpy( &( tmp.arg2 ), &cast->arg2 );
 		tmp.time = cast->time;
 
-		taskCreated = xTaskCreate(vScheduleTask, "Demo", 200, &tmp, 3, &xHandle);
+		taskCreated = xTaskCreate(vDelayTask, "vDelayTask", 200, &tmp, 3, &xHandle);
 
 		if ( taskCreated == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY ){
 			/* Task not created */
@@ -397,17 +397,17 @@ int main( void )
 	// static ControlTempParams_t xParam;
 	ControlTempParams_t *xParam = calloc( 1, sizeof( ControlTempParams_t ) );
 
-	xParam->xDhtPolledData.uHumidity = 10;
-	xParam->xDhtPolledData.uTemperature = 10;
+	xParam->xDhtPolledData.uTemperature = 0;
+	xParam->xDhtPolledData.uHumidity = 5;
 
 	xParam->xTemp_Struct.uMin = 20;
 	xParam->xTemp_Struct.uMax = 40;
-	xParam->xTemp_Struct.bThresholdSet = true;
+	xParam->xTemp_Struct.bThresholdSet = false;
 	xParam->xTemp_Struct.bValueSet = false;
 
 	xParam->xHum_Struct.uMin = 90;
 	xParam->xHum_Struct.uMax = 95;
-	xParam->xTemp_Struct.bThresholdSet = true;
+	xParam->xTemp_Struct.bThresholdSet = false;
 	xParam->xHum_Struct.bValueSet = false;
 
 	int iRes1, iRes2, iRes3, iRes4, iRes5;
@@ -442,11 +442,12 @@ int main( void )
 
 
 	/* Start static variables */
-	xTask_params_t *xTask1Args = calloc( 1, sizeof( xTask_params_t ) );
+	// xTask_params_t *xTask1Args = calloc( 1, sizeof( xTask_params_t ) );
+	TimerHandle_t *xTask1Args = calloc( 1, sizeof( TimerHandle_t ) );
 	xTask_params_t *xTask2Args = calloc( 1, sizeof( xTask_params_t ) );
 
-	xTask1Args->pxDhtPolledData = &xParam->xDhtPolledData;
-	xTask1Args->pxTimer = &xBlinkBlueLed;
+	// xTask1Args->pxDhtPolledData = &xParam->xDhtPolledData;
+	xTask1Args = &xBlinkBlueLed;
 
 	xTask2Args->pxDhtPolledData = &xParam->xDhtPolledData;
 	xTask2Args->pxTimer = &xBlinkOrangeLed;
@@ -456,9 +457,9 @@ int main( void )
 	xScheduledTask_t *xSharedArgs = calloc( 1, sizeof( xScheduledTask_t ) );
 
 
-	strcpy( &xSharedArgs->command, "turnOff" );
-	strcpy( &xSharedArgs->arg1, "23" );
-	strcpy( &xSharedArgs->arg2, "32" );
+	strcpy( &(xSharedArgs->command), "turnOff" );
+	strcpy( &(xSharedArgs->arg1), "23" );
+	strcpy( &(xSharedArgs->arg2), "45" );
 	xSharedArgs->time = 5u;
 
 	xRefreshVar->xSharedArgs = xSharedArgs;
@@ -470,11 +471,11 @@ int main( void )
 
 	if ( xSemaphoreOneShotTask != NULL  && xMutexEsp8266 != NULL)
 	{
-		iRes1 = xTaskCreate( vTaskGetDataDHT, "vTaskGetDataDHT", 300, xTask1Args, 4, NULL );
-		iRes2 = xTaskCreate( vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 500, xTask2Args, 3, NULL );
-		iRes3 = xTaskCreate( vTaskControlTempHum, "vTaskControlTempHum", 300, xParam, 2, NULL );
+		iRes1 = xTaskCreate( vTaskGetDataDHT, "vTaskGetDataDHT", 300, xTask1Args, 5, NULL );
+		iRes2 = xTaskCreate( vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 470, xTask2Args, 3, NULL );
+		iRes3 = xTaskCreate( vTaskControlTempHum, "vTaskControlTempHum", 215, xParam, 4, NULL );
 		iRes4 = xTaskCreate( vTaskRefreshWebserver, "vTaskRefreshWebserver", 1450, xRefreshVar, 1, NULL );
-		iRes5 = xTaskCreate( vTaskCreateTimer, "vTaskCreateTimer", 300, xSharedArgs, 3, NULL );
+		iRes5 = xTaskCreate( vTaskDelayedCommand, "vTaskDelayedCommand", 300, xSharedArgs, 2, NULL );
 	}
 
 	/* Check all task were created correctly */
