@@ -16,11 +16,11 @@
 
 typedef struct
 {
-	char pcMinTemp[8];
-	char pcMaxTemp[8];
-	char pcMinHum[8];
-	char pcMaxHum[8];
-}controlData;
+	char pcMinTemp[ 8 ];
+	char pcMaxTemp[ 8 ];
+	char pcMinHum[ 8 ];
+	char pcMaxHum[ 8 ];
+}controlData_t;
 
 typedef struct
 {
@@ -29,30 +29,30 @@ typedef struct
   bool bThresholdSet;
   uint8_t uMin;
   uint8_t uMax;
-} Threshold_TypeDef;
+} stateMode_t;
 
 typedef struct
 {
   DHT_DataTypedef xDhtPolledData;
-  Threshold_TypeDef xTemp_Struct;
-  Threshold_TypeDef xHum_Struct;
+  stateMode_t xTemp_Struct;
+  stateMode_t xHum_Struct;
 } ControlTempParams_t;
 
 typedef struct
 {
-  char command[ 16 ];
-  char days[ 16 ];
-  char hours[ 16 ];
-  char minutes[ 16 ];
-  char seconds[ 16 ];
-  char param1[ 16 ];
-  char param2[ 16 ];
+  char pcCommand[ 16 ];
+  char pcDays[ 16 ];
+  char pcHours[ 16 ];
+  char pcMinutes[ 16 ];
+  char pcSeconds[ 16 ];
+  char pcArg1[ 16 ];
+  char pcArg2[ 16 ];
 
 }xScheduledTaskParams_t;
 
 typedef struct {
-	ControlTempParams_t *control;
-	xScheduledTask_t *xSharedArgs;
+	ControlTempParams_t *pxControl;
+	xScheduledTask_t *pxSharedArgs;
 } xRefreshWebServer_t;
 
 

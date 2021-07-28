@@ -66,7 +66,6 @@ char *home_header =
 
 
 char *home_tail =
-
        "<form action=\"/setForm\">\n\
             <h2> Elegir temperatura </h2>\n\
             <label for=\"temp\"> Temperatura: </label>\n\
@@ -426,7 +425,7 @@ static void setRanges(char *str, uint8_t minArg, uint8_t maxArg)
 }
 
 
-static void Handle_controlData(controlData *tmp, ControlTempParams_t *pxArg)
+static void Handle_controlData(controlData_t *tmp, ControlTempParams_t *pxArg)
 {
 	uint8_t uMinTemp, uMaxTemp, uMinHum, uMaxHum;
 	uMinTemp = uMaxTemp = uMinHum = uMaxHum = 255;
@@ -481,28 +480,27 @@ static void Handle_controlData(controlData *tmp, ControlTempParams_t *pxArg)
 	}
 }
 
-void HandleScheduleData(xScheduledTaskParams_t *data, xScheduledTask_t *taskData){
-	uint32_t timeInSeconds, days, hours, minutes, seconds;
-	timeInSeconds = days = hours = minutes = seconds = 0;
+void HandleScheduleData(xScheduledTaskParams_t *pxData, xScheduledTask_t *pxTaskData){
+	uint32_t uTimeInSeconds = 0, uDays = 0, uHours = 0, uMinutes = 0, uSeconds = 0;
 
-	days = (uint32_t) atoi(data->days);
-	hours = (uint32_t) atoi(data->hours);
-	minutes = (uint32_t) atoi(data->minutes);
-	seconds = (uint32_t) atoi(data->seconds);
+	uDays = (uint32_t) atoi(pxData->pcDays);
+	uHours = (uint32_t) atoi(pxData->pcHours);
+	uMinutes = (uint32_t) atoi(pxData->pcMinutes);
+	uSeconds = (uint32_t) atoi(pxData->pcSeconds);
 
-	timeInSeconds = days * 86400 + hours * 3600 + minutes * 60 + seconds;
+	uTimeInSeconds = uDays * 86400 + uHours * 3600 + uMinutes * 60 + uSeconds;
 
-	strcpy(taskData->command, data->command);
-	strcpy(taskData->arg1, data->param1);
-	strcpy(taskData->arg2, data->param2);
-	taskData->time = timeInSeconds;
+	strcpy(pxTaskData->pcCommand, pxData->pcCommand);
+	strcpy(pxTaskData->pcArg1, pxData->pcArg1);
+	strcpy(pxTaskData->pcArg2, pxData->pcArg2);
+	pxTaskData->uTime = uTimeInSeconds;
 	if( xSemaphoreGive( xSemaphoreOneShotTask ) != pdTRUE ){
 		/* Error, cannot give Semaphore */
 		Error_Handler();
 	}
 }
 
-void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
+void Server_Start(ControlTempParams_t *pxArg, xScheduledTask_t *pxSharedArgs)
 {
 //	int res;
 	char buftostoreheader[300] = {0};
@@ -534,51 +532,51 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 		{
 			/* Set temp */
 			setValue("do=setTemp,", strTemp);
-			strtoIntValue(strTemp, &arg->xTemp_Struct.uValue);
-			arg->xTemp_Struct.bValueSet = true;
-			arg->xTemp_Struct.bThresholdSet = false;
+			strtoIntValue(strTemp, &pxArg->xTemp_Struct.uValue);
+			pxArg->xTemp_Struct.bValueSet = true;
+			pxArg->xTemp_Struct.bThresholdSet = false;
 
 		} else if (strTemp[0] ==  'c'){
-			arg->xTemp_Struct.bValueSet = false;
-			arg->xTemp_Struct.bThresholdSet = false;
+			pxArg->xTemp_Struct.bValueSet = false;
+			pxArg->xTemp_Struct.bThresholdSet = false;
 		}
 
 		if (strcmp(strHum, " ") && ((char)strHum[0] != '\0') && (char) strHum[0] != 'c')
 		{
 			/* Set hum */
 			setValue("do=setHum,", strHum);
-			strtoIntValue(strHum, &arg->xHum_Struct.uValue);
-			arg->xHum_Struct.bValueSet = true;
-			arg->xHum_Struct.bThresholdSet = false;
+			strtoIntValue(strHum, &pxArg->xHum_Struct.uValue);
+			pxArg->xHum_Struct.bValueSet = true;
+			pxArg->xHum_Struct.bThresholdSet = false;
 
 		} else if (strHum[0] ==  'c'){
-			arg->xHum_Struct.bValueSet = false;
-			arg->xHum_Struct.bThresholdSet = false;
+			pxArg->xHum_Struct.bValueSet = false;
+			pxArg->xHum_Struct.bThresholdSet = false;
 		}
 
-		Server_Handle("/setForm", Link_ID, arg);
+		Server_Handle("/setForm", Link_ID, pxArg);
 	}
 
 
 	/* Ranges */
 	else if (Look_for("/setRange", buftostoreheader) == 1)
 	{
-		controlData paramTmp = {0};
+		controlData_t paramTmp = {0};
 
 		GetDataFromBuffer("minTemp=", "&", buftostoreheader, paramTmp.pcMinTemp);
 		GetDataFromBuffer("maxTemp=", "&", buftostoreheader, paramTmp.pcMaxTemp);
 		GetDataFromBuffer("minHum=", "&", buftostoreheader, paramTmp.pcMinHum);
 		GetDataFromBuffer("maxHum=", " HTTP", buftostoreheader, paramTmp.pcMaxHum);
-		Handle_controlData(&paramTmp, arg);
+		Handle_controlData(&paramTmp, pxArg);
 
-		Server_Handle("/setRange", Link_ID, arg);
+		Server_Handle("/setRange", Link_ID, pxArg);
 	}
 
 
 	else if (Look_for("/main", buftostoreheader) == 1)
 	{
 
-		Server_Handle("/main", Link_ID, arg);
+		Server_Handle("/main", Link_ID, pxArg);
 	}
 
 
@@ -587,14 +585,14 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 	{
 
 		Uart_sendstring("do=turnOn.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID, arg);
+		Server_Handle("/receiveCommand", Link_ID, pxArg);
 	}
 
 	else if (Look_for("/turnoff", buftostoreheader) == 1)
 	{
 
 		Uart_sendstring("do=turnOff.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID, arg);
+		Server_Handle("/receiveCommand", Link_ID, pxArg);
 	}
 
 
@@ -603,17 +601,17 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 	{
 		xScheduledTaskParams_t xScheduleParams = {0};
 
-		GetDataFromBuffer("com=", "&", buftostoreheader, xScheduleParams.command);
-		GetDataFromBuffer("days=", "&", buftostoreheader, xScheduleParams.days);
-		GetDataFromBuffer("hs=", "&", buftostoreheader, xScheduleParams.hours);
-		GetDataFromBuffer("min=", "&", buftostoreheader, xScheduleParams.minutes);
-		GetDataFromBuffer("sec=", "&", buftostoreheader, xScheduleParams.seconds);
-		GetDataFromBuffer("arg1=", "&", buftostoreheader, xScheduleParams.param1);
-		GetDataFromBuffer("arg2=", " HTTP", buftostoreheader, xScheduleParams.param2);
+		GetDataFromBuffer("com=", "&", buftostoreheader, xScheduleParams.pcCommand);
+		GetDataFromBuffer("days=", "&", buftostoreheader, xScheduleParams.pcDays);
+		GetDataFromBuffer("hs=", "&", buftostoreheader, xScheduleParams.pcHours);
+		GetDataFromBuffer("min=", "&", buftostoreheader, xScheduleParams.pcMinutes);
+		GetDataFromBuffer("sec=", "&", buftostoreheader, xScheduleParams.pcSeconds);
+		GetDataFromBuffer("arg1=", "&", buftostoreheader, xScheduleParams.pcArg1);
+		GetDataFromBuffer("arg2=", " HTTP", buftostoreheader, xScheduleParams.pcArg2);
 
-		HandleScheduleData(&xScheduleParams, xSharedArgs);
+		HandleScheduleData(&xScheduleParams, pxSharedArgs);
 
-		Server_Handle("/timer", Link_ID, arg);
+		Server_Handle("/timer", Link_ID, pxArg);
 	}
 
 
@@ -633,7 +631,7 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 
 		sprintf(buf, "do=%s,%s,%s.\r\n", command, arg1, arg2);
 		Uart_sendstring(buf, device_uart);
-		Server_Handle("/special", Link_ID, arg);
+		Server_Handle("/special", Link_ID, pxArg);
 	}
 
 	else if (Look_for("/favicon.ico", buftostoreheader) == 1)
@@ -641,7 +639,7 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 
 	else
 	{
-		Server_Handle("/main", Link_ID, arg);
+		Server_Handle("/main", Link_ID, pxArg);
 	}
 //timeout:
 //	(void)0;

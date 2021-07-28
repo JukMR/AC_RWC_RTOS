@@ -116,7 +116,7 @@ void vTaskRefreshWebserver( void *pvParameters )
 
 		// xSemaphoreTake(xMutexEsp8266, portMAX_DELAY);
 
-		vRefreshWebserver( xParameters->control, xParameters->xSharedArgs );
+		vRefreshWebserver( xParameters->pxControl, xParameters->pxSharedArgs );
 
 		#if DEBUG
 		uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
@@ -336,13 +336,13 @@ void vDelayTask( void * pvParameters ){
 
 		cast = ( xScheduledTask_t * ) pvParameters;
 
-		if ( cast->time == 0 )
+		if ( cast->uTime == 0 )
 			vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 1 * 1000 ) );
 		else
-			vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( cast->time * 1000 ) );
+			vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( cast->uTime * 1000 ) );
 
 
-		HandleScheduledCommand( &cast->command, &cast->arg1, &cast->arg2 );
+		HandleScheduledCommand( &cast->pcCommand, &cast->pcArg1, &cast->pcArg2 );
 
 		vTaskDelete( NULL );
 		/* Function should not reach here */
@@ -360,10 +360,10 @@ void vTaskDelayedCommand( void *pvParameters ){
 		xSemaphoreTake ( xSemaphoreOneShotTask, portMAX_DELAY );
 
 		cast = ( xScheduledTask_t * ) pvParameters;
-		strcpy( &( tmp.command ), &cast->command );
-		strcpy( &( tmp.arg1 ), &cast->arg1 );
-		strcpy( &( tmp.arg2 ), &cast->arg2 );
-		tmp.time = cast->time;
+		strcpy( &( tmp.pcCommand ), &cast->pcCommand );
+		strcpy( &( tmp.pcArg1 ), &cast->pcArg1 );
+		strcpy( &( tmp.pcArg2 ), &cast->pcArg2 );
+		tmp.uTime = cast->uTime;
 
 		taskCreated = xTaskCreate(vDelayTask, "vDelayTask", 200, &tmp, 3, &xHandle);
 
@@ -386,15 +386,7 @@ void prvTimerCallbackHandler( TimerHandle_t xTimer )
 }
 
 
-int main( void )
-{
-	BSP_Init();
-
-	vConnectWifi_StaticIp( "Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200" );
-
-	/* Initialize some params */
-
-	// static ControlTempParams_t xParam;
+ControlTempParams_t *initializeParams(){
 	ControlTempParams_t *xParam = calloc( 1, sizeof( ControlTempParams_t ) );
 
 	xParam->xDhtPolledData.uTemperature = 0;
@@ -410,8 +402,21 @@ int main( void )
 	xParam->xTemp_Struct.bThresholdSet = false;
 	xParam->xHum_Struct.bValueSet = false;
 
-	int iRes1, iRes2, iRes3, iRes4, iRes5;
-	iRes1 = iRes2 = iRes3 = iRes4 = iRes5 = 0;
+	return xParam;
+}
+
+
+int main( void )
+{
+	BSP_Init();
+
+	vConnectWifi_StaticIp( "Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200" );
+
+	/* Initialize some params */
+
+	ControlTempParams_t *xParam = initializeParams();
+
+
 
 	/* Create OneShotTask Semaphore */
 	xSemaphoreOneShotTask = xSemaphoreCreateBinary();
@@ -419,7 +424,7 @@ int main( void )
 	xSemaphoreTake( xSemaphoreOneShotTask, 0 );
 
 	/* Create xMutexESP8266 Semaphore */
-	xMutexEsp8266 = xSemaphoreCreateMutex();
+	// xMutexEsp8266 = xSemaphoreCreateMutex();
 
 
 	/* Start timers */
@@ -442,40 +447,44 @@ int main( void )
 
 
 	/* Start static variables */
-	// xTask_params_t *xTask1Args = calloc( 1, sizeof( xTask_params_t ) );
-	TimerHandle_t *xTask1Args = calloc( 1, sizeof( TimerHandle_t ) );
-	xTask_params_t *xTask2Args = calloc( 1, sizeof( xTask_params_t ) );
+	// xTask_params_t *pxTask1Args = calloc( 1, sizeof( xTask_params_t ) );
+	TimerHandle_t *pxTask1Args = calloc( 1, sizeof( TimerHandle_t ) );
+	xTask_params_t *pxTask2Args = calloc( 1, sizeof( xTask_params_t ) );
 
-	// xTask1Args->pxDhtPolledData = &xParam->xDhtPolledData;
-	xTask1Args = &xBlinkBlueLed;
+	// pxTask1Args->pxDhtPolledData = &xParam->xDhtPolledData;
+	pxTask1Args = &xBlinkBlueLed;
 
-	xTask2Args->pxDhtPolledData = &xParam->xDhtPolledData;
-	xTask2Args->pxTimer = &xBlinkOrangeLed;
+	pxTask2Args->pxDhtPolledData = &xParam->xDhtPolledData;
+	pxTask2Args->pxTimer = &xBlinkOrangeLed;
 
 	/* Start SchedulerTask variables */
-	xRefreshWebServer_t *xRefreshVar = calloc( 1, sizeof( xRefreshWebServer_t ) );
-	xScheduledTask_t *xSharedArgs = calloc( 1, sizeof( xScheduledTask_t ) );
+	xRefreshWebServer_t *pxRefreshVar = calloc( 1, sizeof( xRefreshWebServer_t ) );
+	xScheduledTask_t *pxSharedArgs = calloc( 1, sizeof( xScheduledTask_t ) );
 
 
-	strcpy( &(xSharedArgs->command), "turnOff" );
-	strcpy( &(xSharedArgs->arg1), "23" );
-	strcpy( &(xSharedArgs->arg2), "45" );
-	xSharedArgs->time = 5u;
+	strcpy( &(pxSharedArgs->pcCommand), "turnOff" );
+	strcpy( &(pxSharedArgs->pcArg1), "23" );
+	strcpy( &(pxSharedArgs->pcArg2), "45" );
+	pxSharedArgs->uTime = 5u;
 
-	xRefreshVar->xSharedArgs = xSharedArgs;
-	xRefreshVar->control = xParam;
+	pxRefreshVar->pxSharedArgs = pxSharedArgs;
+	pxRefreshVar->pxControl = xParam;
 
 
 	/* Initialize Queue */
 	xDhtQueue = xQueueCreate( 1, sizeof( DHT_DataTypedef ) );
 
-	if ( xSemaphoreOneShotTask != NULL  && xMutexEsp8266 != NULL)
+
+	int iRes1, iRes2, iRes3, iRes4, iRes5;
+	iRes1 = iRes2 = iRes3 = iRes4 = iRes5 = 0;
+
+	if ( xSemaphoreOneShotTask != NULL )
 	{
-		iRes1 = xTaskCreate( vTaskGetDataDHT, "vTaskGetDataDHT", 300, xTask1Args, 5, NULL );
-		iRes2 = xTaskCreate( vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 470, xTask2Args, 3, NULL );
+		iRes1 = xTaskCreate( vTaskGetDataDHT, "vTaskGetDataDHT", 300, pxTask1Args, 5, NULL );
+		iRes2 = xTaskCreate( vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 470, pxTask2Args, 3, NULL );
 		iRes3 = xTaskCreate( vTaskControlTempHum, "vTaskControlTempHum", 215, xParam, 4, NULL );
-		iRes4 = xTaskCreate( vTaskRefreshWebserver, "vTaskRefreshWebserver", 1450, xRefreshVar, 1, NULL );
-		iRes5 = xTaskCreate( vTaskDelayedCommand, "vTaskDelayedCommand", 300, xSharedArgs, 2, NULL );
+		iRes4 = xTaskCreate( vTaskRefreshWebserver, "vTaskRefreshWebserver", 1450, pxRefreshVar, 1, NULL );
+		iRes5 = xTaskCreate( vTaskDelayedCommand, "vTaskDelayedCommand", 300, pxSharedArgs, 2, NULL );
 	}
 
 	/* Check all task were created correctly */

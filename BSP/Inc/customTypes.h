@@ -10,10 +10,10 @@
 
 
 typedef struct {
-	char command[16];
-	char arg1[16];
-	char arg2[16];
-	uint32_t time;
+	char pcCommand[16];
+	char pcArg1[16];
+	char pcArg2[16];
+	uint32_t uTime;
 } xScheduledTask_t;
 
 #endif /* INC_CUSTOMTYPES_H_ */
