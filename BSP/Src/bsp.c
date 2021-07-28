@@ -59,11 +59,11 @@ void vConnectWifi_StaticIp(char *ssid, char *pass, char* ip){
     ESP_Init(ssid, pass, ip);
 }
 
-void vRefreshWebserver(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs){
+void vRefreshWebserver(xStateStructure_t *arg, xDelayTask_t *xSharedArgs){
 	Server_Start(arg, xSharedArgs);
 }
 
-void vReadDHTSensor(DHT_DataTypedef *dataStruct){
+void vReadDHTSensor(DhtReadings_t *dataStruct){
     DHT_GetData(dataStruct);
 }
 

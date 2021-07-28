@@ -157,7 +157,7 @@ uint8_t DHT_Read (void)
 
 
 
-void DHT_GetData (DHT_DataTypedef *DHT_Data)
+void DHT_GetData (DhtReadings_t *DHT_Data)
 {
 start:
     DHT_Start ();

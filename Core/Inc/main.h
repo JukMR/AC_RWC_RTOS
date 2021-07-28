@@ -41,7 +41,7 @@ typedef struct
 {
 	uint8_t uTemperature;
 	uint8_t uHumidity;
-}DHT_DataTypedef;
+} DhtReadings_t;
 
 
 /* USER CODE END ET */

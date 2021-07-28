@@ -23,7 +23,7 @@
 #include "bsp.h"
 
 void ESP_Init (char *SSID, char *PASSWD, char *STAIP);
-void Server_Start (ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs);
+void Server_Start (xStateStructure_t *arg, xDelayTask_t *xSharedArgs);
 void ESP_Send_Multi (char *APIkey, int numberoffileds, uint8_t value[]);
 
 #endif /* INC_ESP8266_H_ */

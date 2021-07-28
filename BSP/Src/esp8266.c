@@ -256,7 +256,7 @@ int Server_Send(char *str, int Link_ID)
 }
 
 
-int Server_Send_main(char *start, char *end, char *timers, char *special, int Link_ID, DHT_DataTypedef *dht_struct)
+int Server_Send_main(char *start, char *end, char *timers, char *special, int Link_ID, DhtReadings_t *dht_struct)
 {
 	int lenStart = strlen(start);
 	char data[80];
@@ -351,7 +351,7 @@ reset:
 }
 
 
-void Server_Handle(char *str, int Link_ID, ControlTempParams_t *pxArg)
+void Server_Handle(char *str, int Link_ID, xStateStructure_t *pxArg)
 {
 	char datatosend[4096] = {0};
 
@@ -425,7 +425,7 @@ static void setRanges(char *str, uint8_t minArg, uint8_t maxArg)
 }
 
 
-static void Handle_controlData(controlData_t *tmp, ControlTempParams_t *pxArg)
+static void Handle_controlData(xSetRangeBuffer_t *tmp, xStateStructure_t *pxArg)
 {
 	uint8_t uMinTemp, uMaxTemp, uMinHum, uMaxHum;
 	uMinTemp = uMaxTemp = uMinHum = uMaxHum = 255;
@@ -480,7 +480,7 @@ static void Handle_controlData(controlData_t *tmp, ControlTempParams_t *pxArg)
 	}
 }
 
-void HandleScheduleData(xScheduledTaskParams_t *pxData, xScheduledTask_t *pxTaskData){
+void HandleScheduleData(xTimerBuffer_t *pxData, xDelayTask_t *pxTaskData){
 	uint32_t uTimeInSeconds = 0, uDays = 0, uHours = 0, uMinutes = 0, uSeconds = 0;
 
 	uDays = (uint32_t) atoi(pxData->pcDays);
@@ -500,7 +500,7 @@ void HandleScheduleData(xScheduledTaskParams_t *pxData, xScheduledTask_t *pxTask
 	}
 }
 
-void Server_Start(ControlTempParams_t *pxArg, xScheduledTask_t *pxSharedArgs)
+void Server_Start(xStateStructure_t *pxArg, xDelayTask_t *pxSharedArgs)
 {
 //	int res;
 	char buftostoreheader[300] = {0};
@@ -561,7 +561,7 @@ void Server_Start(ControlTempParams_t *pxArg, xScheduledTask_t *pxSharedArgs)
 	/* Ranges */
 	else if (Look_for("/setRange", buftostoreheader) == 1)
 	{
-		controlData_t paramTmp = {0};
+		xSetRangeBuffer_t paramTmp = {0};
 
 		GetDataFromBuffer("minTemp=", "&", buftostoreheader, paramTmp.pcMinTemp);
 		GetDataFromBuffer("maxTemp=", "&", buftostoreheader, paramTmp.pcMaxTemp);
@@ -599,7 +599,7 @@ void Server_Start(ControlTempParams_t *pxArg, xScheduledTask_t *pxSharedArgs)
 	/* Schedule commands */
 	else if (Look_for("/timer", buftostoreheader) == 1)
 	{
-		xScheduledTaskParams_t xScheduleParams = {0};
+		xTimerBuffer_t xScheduleParams = {0};
 
 		GetDataFromBuffer("com=", "&", buftostoreheader, xScheduleParams.pcCommand);
 		GetDataFromBuffer("days=", "&", buftostoreheader, xScheduleParams.pcDays);

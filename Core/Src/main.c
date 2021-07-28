@@ -39,10 +39,8 @@
 
 #define DEBUG 1
 
-extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 
-#define wifi_uart &huart1
 #define uart_command &huart2
 
 void *vLedRed;
@@ -55,7 +53,7 @@ QueueHandle_t xDhtQueue;
 
 /* Struct define */
 typedef struct {
-	DHT_DataTypedef *pxDhtPolledData;
+	DhtReadings_t *pxDhtPolledData;
 	TimerHandle_t *pxTimer;
 } xTask_params_t;
 
@@ -74,8 +72,6 @@ void vTaskSendDataThingSpeak( void *pvParameters )
 
 	for (;;)
 	{
-		// xSemaphoreTake(xMutexEsp8266, portMAX_DELAY);
-
 		vTurnLedOn( vLedOrange );
 
 		pxTmp = ( xTask_params_t * ) pvParameters;
@@ -93,8 +89,6 @@ void vTaskSendDataThingSpeak( void *pvParameters )
 		if ( xTimerStart( *pxTmp->pxTimer, pdMS_TO_TICKS( 1500 ) ) == pdFAIL )
 			/* Timer not initialized */
 			Error_Handler();
-
-		// xSemaphoreGive(xMutexEsp8266);
 
 		/* wait 15s between sends */
 		vTaskDelay( pdMS_TO_TICKS( 15000 ) );
@@ -114,8 +108,6 @@ void vTaskRefreshWebserver( void *pvParameters )
 	{
 		xParameters = ( xRefreshWebServer_t * ) pvParameters;
 
-		// xSemaphoreTake(xMutexEsp8266, portMAX_DELAY);
-
 		vRefreshWebserver( xParameters->pxControl, xParameters->pxSharedArgs );
 
 		#if DEBUG
@@ -124,8 +116,6 @@ void vTaskRefreshWebserver( void *pvParameters )
 			Error_Handler();
 		#endif
 
-		// xSemaphoreGive(xMutexEsp8266);
-
 		vTaskDelay( pdMS_TO_TICKS( 100 ) );
 	}
 }
@@ -133,8 +123,7 @@ void vTaskRefreshWebserver( void *pvParameters )
 
 void vTaskControlTempHum( void *pvParameters )
 {
-	TickType_t xLastWakeTime = xTaskGetTickCount();
-	ControlTempParams_t *xParam;
+	xStateStructure_t *xParam;
 
 	#if DEBUG
 	volatile UBaseType_t uxHighWaterMark;
@@ -142,31 +131,32 @@ void vTaskControlTempHum( void *pvParameters )
 
 	for (;;)
 	{
-		xParam = ( ControlTempParams_t * ) pvParameters;
+		xParam = ( xStateStructure_t * ) pvParameters;
 
-		DHT_DataTypedef tmp;
+		DhtReadings_t tmp;
 
 		xQueueReceive(xDhtQueue, &tmp, portMAX_DELAY);
 
+		/* Save temperature and humidity value to memory */
 		xParam->xDhtPolledData.uTemperature = tmp.uTemperature;
 		xParam->xDhtPolledData.uHumidity = tmp.uHumidity;
 
-		// Temperature Control
-		// Threshold activated
+		/* Temperature Control */
+		/* Threshold activated */
 		if ( xParam->xTemp_Struct.bThresholdSet )
 		{
-			// temperature is lower than threshold
+			/* temperature is lower than threshold */
 			if ( xParam->xDhtPolledData.uTemperature < xParam->xTemp_Struct.uMin )
 			{
 				vSetTemp( xParam->xTemp_Struct.uMax );
 			}
-			// temperature is higher than threshold
+			/* temperature is higher than threshold */
 			else if ( xParam->xDhtPolledData.uTemperature > xParam->xTemp_Struct.uMax )
 			{
 				vSetTemp( xParam->xTemp_Struct.uMin );
 			}
 
-		// Temperature value set activated
+		/* Temperature value set activated */
 		}
 		else if ( xParam->xTemp_Struct.bValueSet )
 		{
@@ -176,24 +166,24 @@ void vTaskControlTempHum( void *pvParameters )
 			}
 		}
 
-		// Humidity Control
-		// Threshold activated
+		/* Humidity Control */
+		/* Threshold activated */
 		if ( xParam->xHum_Struct.bThresholdSet )
 		{
 
-			// temperature is lower than threshold
+			/* temperature is lower than threshold */
 			if ( xParam->xDhtPolledData.uHumidity < xParam->xHum_Struct.uMin )
 			{
 				vSetHum( xParam->xHum_Struct.uMax );
 			}
 
-			// temperature is higher than threshold
+			/* temperature is higher than threshold */
 			else if ( xParam->xDhtPolledData.uHumidity > xParam->xHum_Struct.uMax )
 			{
 				vSetHum( xParam->xHum_Struct.uMin );
 			}
 
-		// temperature value set
+		/* temperature value set */
 		}
 		else if ( xParam->xHum_Struct.bValueSet )
 		{
@@ -209,8 +199,6 @@ void vTaskControlTempHum( void *pvParameters )
 		if ( uxHighWaterMark < 50 || uxHighWaterMark > 250 )
 			Error_Handler();
 		#endif
-
-		// vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 6000 ) );
 	}
 }
 
@@ -223,7 +211,7 @@ void vTaskGetDataDHT( void *pvParameters )
 
 	xTimerHandle *xTimer;
 
-	DHT_DataTypedef tmp;
+	DhtReadings_t tmp;
 
 	#if DEBUG
 	volatile UBaseType_t uxHighWaterMark;
@@ -252,7 +240,7 @@ void vTaskGetDataDHT( void *pvParameters )
 		#if DEBUG
 		/* Check stack size is enough */
 		uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-		if ( uxHighWaterMark < 150 || uxHighWaterMark > 200 )
+		if ( uxHighWaterMark < 150 || uxHighWaterMark > 250 )
 			Error_Handler();
 		#endif
 
@@ -270,102 +258,107 @@ void vTaskGetDataDHT( void *pvParameters )
 void HandleScheduledCommand( char *pcCommand, char *pcArg1, char *pcArg2 ){
 
 	if ( !(strcmp( pcCommand, "turnOff" )) ) {
-		vSendToUart("do=turnOff.\r\n", uart_command);
+		vSendToUart( "do=turnOff.\r\n", uart_command );
 	}
 
 	else if ( !( strcmp( pcCommand, "turnOn" ) ) ) {
-		vSendToUart("do=turnOn.\r\n", uart_command);
+		vSendToUart( "do=turnOn.\r\n", uart_command );
 	}
 
 	else if ( !( strcmp( pcCommand, "setTemp" ) ) ) {
-		char buf[32];
-		uint8_t uArg1 = atoi(pcArg1);
-		uint8_t uArg2 = atoi(pcArg2);
-		sprintf(buf, "do=setTemp,%u,%u.\r\n", uArg1, uArg2);
-		vSendToUart(buf, uart_command);
+		char buf[ 32 ];
+		uint8_t uArg1 = atoi( pcArg1 );
+		uint8_t uArg2 = atoi( pcArg2 );
+		sprintf( buf, "do=setTemp,%u,%u.\r\n", uArg1, uArg2 );
+		vSendToUart( buf, uart_command );
 	}
 
 	else if ( !( strcmp( pcCommand, "setHum" ) ) ) {
-		char buf[32];
-		uint8_t uArg1 = atoi(pcArg1);
-		uint8_t uArg2 = atoi(pcArg2);
-		sprintf(buf, "do=setHum,%u,%u.\r\n", uArg1, uArg2);
-		vSendToUart(buf, uart_command);
+		char buf[ 32 ];
+		uint8_t uArg1 = atoi( pcArg1 );
+		uint8_t uArg2 = atoi( pcArg2 );
+		sprintf( buf, "do=setHum,%u,%u.\r\n", uArg1, uArg2 );
+		vSendToUart( buf, uart_command );
 	}
 
 	else if ( !( strcmp( pcCommand, "setRangeTemp" ) ) ) {
-		char buf[32];
-		uint8_t uArg1 = atoi(pcArg1);
-		uint8_t uArg2 = atoi(pcArg2);
-		sprintf(buf, "do=setRangeTemp,%u,%u.\r\n", uArg1, uArg2);
-		vSendToUart(buf, uart_command);
+		char buf[ 32 ];
+		uint8_t uArg1 = atoi( pcArg1 );
+		uint8_t uArg2 = atoi( pcArg2 );
+		sprintf( buf, "do=setRangeTemp,%u,%u.\r\n", uArg1, uArg2 );
+		vSendToUart( buf, uart_command );
 	}
 
 	else if ( !( strcmp( pcCommand, "setRangeHum" ) ) ) {
-		char buf[32];
-		uint8_t uArg1 = atoi(pcArg1);
-		uint8_t uArg2 = atoi(pcArg2);
-		sprintf(buf, "do=setRangeHum,%u,%u.\r\n", uArg1, uArg2);
-		vSendToUart(buf, uart_command);
+		char buf[ 32 ];
+		uint8_t uArg1 = atoi( pcArg1 );
+		uint8_t uArg2 = atoi( pcArg2 );
+		sprintf( buf, "do=setRangeHum,%u,%u.\r\n", uArg1, uArg2 );
+		vSendToUart( buf, uart_command );
 	}
 
 	else if ( !( strcmp( pcCommand, "special1" ) ) ) {
-		char buf[64];
-		sprintf(buf, "do=special1,%s,%s.\r\n", pcArg1, pcArg2);
-		vSendToUart(buf, uart_command);
+		char buf[ 64 ];
+		sprintf( buf, "do=special1,%s,%s.\r\n", pcArg1, pcArg2 );
+		vSendToUart( buf, uart_command );
 	}
 
 	else if ( !( strcmp( pcCommand, "special2" ) ) ) {
-		char buf[64];
-		sprintf(buf, "do=special2,%s,%s.\r\n", pcArg1, pcArg2);
-		vSendToUart(buf, uart_command);
+		char buf[ 64 ];
+		sprintf( buf, "do=special2,%s,%s.\r\n", pcArg1, pcArg2 );
+		vSendToUart( buf, uart_command );
 	}
 
 	else if ( !( strcmp( pcCommand, "special3" ) ) ) {
-		char buf[64];
-		sprintf(buf, "do=special3,%s,%s.\r\n", pcArg1, pcArg2);
-		vSendToUart(buf, uart_command);
+		char buf[ 64 ];
+		sprintf( buf, "do=special3,%s,%s.\r\n", pcArg1, pcArg2 );
+		vSendToUart( buf, uart_command );
 	}
 }
 
 
 void vDelayTask( void * pvParameters ){
-	xScheduledTask_t *cast;
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
+	xDelayTask_t *cast = ( xDelayTask_t * ) pvParameters;
+	xDelayTask_t tmp = { 0 };
 
-		cast = ( xScheduledTask_t * ) pvParameters;
+	strcpy( (char *) &(tmp.pcCommand) , &(*cast->pcCommand));
+	strcpy( (char *) &(tmp.pcArg1) , &(*cast->pcArg1));
+	strcpy( (char *) &(tmp.pcArg2) , &(*cast->pcArg2));
+	tmp.uTime = cast->uTime;
 
-		if ( cast->uTime == 0 )
-			vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 1 * 1000 ) );
-		else
-			vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( cast->uTime * 1000 ) );
+	if ( tmp.uTime == 0 )
+		vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 1 * 1000 ) );
+	else
+		vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( tmp.uTime * 1000 ) );
 
+	/* Send delayed command */
+	HandleScheduledCommand( (char *) &(tmp.pcCommand), (char *) &(tmp.pcArg1) , (char *) &(tmp.pcArg2) );
 
-		HandleScheduledCommand( &*(cast->pcCommand), &*(cast->pcArg1), &*(cast->pcArg2) );
+	vTaskDelete( NULL );
 
-		vTaskDelete( NULL );
-		/* Function should not reach here */
-		Error_Handler();
+	/* Task should not reach here */
+	Error_Handler();
 }
 
 
 void vTaskDelayedCommand( void *pvParameters ){
 	BaseType_t taskCreated;
 	TaskHandle_t xHandle = NULL;
-	xScheduledTask_t *cast;
-	xScheduledTask_t tmp = {0};
+	xDelayTask_t *cast;
+	xDelayTask_t tmp = { 0 };
 
 	for (;;) {
 		xSemaphoreTake ( xSemaphoreOneShotTask, portMAX_DELAY );
 
-		cast = ( xScheduledTask_t * ) pvParameters;
-		strcpy( &( tmp.pcCommand ), &cast->pcCommand );
-		strcpy( &( tmp.pcArg1 ), &cast->pcArg1 );
-		strcpy( &( tmp.pcArg2 ), &cast->pcArg2 );
+		cast = ( xDelayTask_t * ) pvParameters;
+		strcpy( (char *) &( tmp.pcCommand ), & ( *cast->pcCommand ) );
+		strcpy( (char *) &( tmp.pcArg1 ), & ( *cast->pcArg1 ) );
+		strcpy( (char *) &( tmp.pcArg2 ), & ( *cast->pcArg2 ) );
 		tmp.uTime = cast->uTime;
 
-		taskCreated = xTaskCreate(vDelayTask, "vDelayTask", 200, &tmp, 3, &xHandle);
+		taskCreated = xTaskCreate( vDelayTask, "vDelayTask", 200, &tmp, 3, &xHandle );
 
 		if ( taskCreated == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY ){
 			/* Task not created */
@@ -386,18 +379,18 @@ void prvTimerCallbackHandler( TimerHandle_t xTimer )
 }
 
 
-ControlTempParams_t *initializeParams(){
-	ControlTempParams_t *xParam = calloc( 1, sizeof( ControlTempParams_t ) );
+xStateStructure_t *initializeParams( void ) {
+	xStateStructure_t *xParam = calloc( 1, sizeof( xStateStructure_t ) );
 
 	xParam->xDhtPolledData.uTemperature = 0;
 	xParam->xDhtPolledData.uHumidity = 5;
 
-	xParam->xTemp_Struct.uMin = 20;
-	xParam->xTemp_Struct.uMax = 40;
+	xParam->xTemp_Struct.uMin = 0;
+	xParam->xTemp_Struct.uMax = 50;
 	xParam->xTemp_Struct.bThresholdSet = false;
 	xParam->xTemp_Struct.bValueSet = false;
 
-	xParam->xHum_Struct.uMin = 90;
+	xParam->xHum_Struct.uMin = 5;
 	xParam->xHum_Struct.uMax = 95;
 	xParam->xTemp_Struct.bThresholdSet = false;
 	xParam->xHum_Struct.bValueSet = false;
@@ -413,18 +406,15 @@ int main( void )
 	vConnectWifi_StaticIp( "Diagon Alley 2.4GHz", "hayunboggartenlaalacena", "192.168.0.200" );
 
 	/* Initialize some params */
-
-	ControlTempParams_t *xParam = initializeParams();
-
+	xStateStructure_t *xParam = initializeParams();
 
 
 	/* Create OneShotTask Semaphore */
 	xSemaphoreOneShotTask = xSemaphoreCreateBinary();
+
+
 	/* Initialize the semaphore as taken */
 	xSemaphoreTake( xSemaphoreOneShotTask, 0 );
-
-	/* Create xMutexESP8266 Semaphore */
-	// xMutexEsp8266 = xSemaphoreCreateMutex();
 
 
 	/* Start timers */
@@ -433,10 +423,13 @@ int main( void )
 	xBlinkBlueLed = xTimerCreate( "Ledoff_DHT", pdMS_TO_TICKS( 1000 ), pdFALSE, ( void * ) 1, prvTimerCallbackHandler );
 	xBlinkOrangeLed = xTimerCreate( "Ledoff_ThingSpeak_logger", pdMS_TO_TICKS( 1000 ), pdFALSE, ( void * ) 2, prvTimerCallbackHandler );
 
+
 	/* Check timers were created correctly */
 	if ( xBlinkBlueLed == NULL || xBlinkOrangeLed == NULL )
-		// timer not created
+		/* timer not created */
 		Error_Handler();
+
+
 
 	/* Check timers were started correctly */
 	if ( xTimerStart( xBlinkBlueLed, 0 ) == pdFAIL || xTimerStart( xBlinkOrangeLed, 0 ) == pdFAIL )
@@ -447,48 +440,37 @@ int main( void )
 
 
 	/* Start static variables */
-	// xTask_params_t *pxTask1Args = calloc( 1, sizeof( xTask_params_t ) );
-	TimerHandle_t *pxTask1Args = calloc( 1, sizeof( TimerHandle_t ) );
 	xTask_params_t *pxTask2Args = calloc( 1, sizeof( xTask_params_t ) );
-
-	// pxTask1Args->pxDhtPolledData = &xParam->xDhtPolledData;
-	pxTask1Args = &xBlinkBlueLed;
 
 	pxTask2Args->pxDhtPolledData = &xParam->xDhtPolledData;
 	pxTask2Args->pxTimer = &xBlinkOrangeLed;
 
+
 	/* Start SchedulerTask variables */
+	xDelayTask_t *pxSharedArgs = calloc( 1, sizeof( xDelayTask_t ) );
+
 	xRefreshWebServer_t *pxRefreshVar = calloc( 1, sizeof( xRefreshWebServer_t ) );
-	xScheduledTask_t *pxSharedArgs = calloc( 1, sizeof( xScheduledTask_t ) );
-
-
-	strcpy( &(pxSharedArgs->pcCommand), "turnOff" );
-	strcpy( &(pxSharedArgs->pcArg1), "23" );
-	strcpy( &(pxSharedArgs->pcArg2), "45" );
-	pxSharedArgs->uTime = 5u;
-
 	pxRefreshVar->pxSharedArgs = pxSharedArgs;
 	pxRefreshVar->pxControl = xParam;
 
 
 	/* Initialize Queue */
-	xDhtQueue = xQueueCreate( 1, sizeof( DHT_DataTypedef ) );
+	xDhtQueue = xQueueCreate( 1, sizeof( DhtReadings_t ) );
 
 
-	int iRes1, iRes2, iRes3, iRes4, iRes5;
-	iRes1 = iRes2 = iRes3 = iRes4 = iRes5 = 0;
+	int iRes1 = 0, iRes2 = 0, iRes3 = 0, iRes4 = 0, iRes5 = 0;
 
 	if ( xSemaphoreOneShotTask != NULL )
 	{
-		iRes1 = xTaskCreate( vTaskGetDataDHT, "vTaskGetDataDHT", 300, pxTask1Args, 5, NULL );
+		iRes1 = xTaskCreate( vTaskGetDataDHT, "vTaskGetDataDHT", 300, &xBlinkBlueLed, 5, NULL );
 		iRes2 = xTaskCreate( vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 470, pxTask2Args, 3, NULL );
-		iRes3 = xTaskCreate( vTaskControlTempHum, "vTaskControlTempHum", 215, xParam, 4, NULL );
+		iRes3 = xTaskCreate( vTaskControlTempHum, "vTaskControlTempHum", 215, pxRefreshVar->pxControl, 4, NULL );
 		iRes4 = xTaskCreate( vTaskRefreshWebserver, "vTaskRefreshWebserver", 1450, pxRefreshVar, 1, NULL );
-		iRes5 = xTaskCreate( vTaskDelayedCommand, "vTaskDelayedCommand", 300, pxSharedArgs, 2, NULL );
+		iRes5 = xTaskCreate( vTaskDelayedCommand, "vTaskDelayedCommand", 300, pxRefreshVar->pxSharedArgs, 2, NULL );
 	}
 
 	/* Check all task were created correctly */
-	if ( ! ( ( iRes1 == pdPASS ) && ( iRes4 == pdPASS ) && ( iRes3 == pdPASS ) && ( iRes4 == pdPASS ) && ( iRes5 == pdPASS ) ) )
+	if ( ! ( ( iRes1 == pdPASS ) && ( iRes2 == pdPASS ) && ( iRes3 == pdPASS ) && ( iRes4 == pdPASS ) && ( iRes5 == pdPASS ) ) )
 	{
 		Error_Handler();
 	}

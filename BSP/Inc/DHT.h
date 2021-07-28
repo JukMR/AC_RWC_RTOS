@@ -12,6 +12,6 @@
 #include "main.h"
 
 
-void DHT_GetData (DHT_DataTypedef *DHT_Data);
+void DHT_GetData (DhtReadings_t *DHT_Data);
 
 #endif /* INC_DHT_H_ */

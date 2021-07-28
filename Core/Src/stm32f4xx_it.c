@@ -60,7 +60,9 @@ extern void Uart_isr (UART_HandleTypeDef *huart);
 /* External variables --------------------------------------------------------*/
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
-extern UART_HandleTypeDef huart6;
+
+// Not used
+//extern UART_HandleTypeDef huart6;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */

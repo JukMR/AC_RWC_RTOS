@@ -20,7 +20,7 @@ typedef struct
 	char pcMaxTemp[ 8 ];
 	char pcMinHum[ 8 ];
 	char pcMaxHum[ 8 ];
-}controlData_t;
+} xSetRangeBuffer_t;
 
 typedef struct
 {
@@ -29,14 +29,14 @@ typedef struct
   bool bThresholdSet;
   uint8_t uMin;
   uint8_t uMax;
-} stateMode_t;
+} xStateMode_t;
 
 typedef struct
 {
-  DHT_DataTypedef xDhtPolledData;
-  stateMode_t xTemp_Struct;
-  stateMode_t xHum_Struct;
-} ControlTempParams_t;
+  DhtReadings_t xDhtPolledData;
+  xStateMode_t xTemp_Struct;
+  xStateMode_t xHum_Struct;
+} xStateStructure_t;
 
 typedef struct
 {
@@ -47,12 +47,11 @@ typedef struct
   char pcSeconds[ 16 ];
   char pcArg1[ 16 ];
   char pcArg2[ 16 ];
-
-}xScheduledTaskParams_t;
+} xTimerBuffer_t;
 
 typedef struct {
-	ControlTempParams_t *pxControl;
-	xScheduledTask_t *pxSharedArgs;
+	xStateStructure_t *pxControl;
+	xDelayTask_t *pxSharedArgs;
 } xRefreshWebServer_t;
 
 
@@ -73,9 +72,9 @@ void BSP_Init(void);
 
 void vConnectWifi_StaticIp(char *ssid, char *pass, char *ip);
 
-void vRefreshWebserver(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs);
+void vRefreshWebserver(xStateStructure_t *arg, xDelayTask_t *xSharedArgs);
 
-void vReadDHTSensor(DHT_DataTypedef *dataStruct);
+void vReadDHTSensor(DhtReadings_t *dataStruct);
 
 void vLogDataThingSpeaker(char *api, int number_values, uint8_t *value);
 
