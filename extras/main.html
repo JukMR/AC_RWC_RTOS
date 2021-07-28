@@ -28,11 +28,11 @@
         <form action="/setForm">
             <h2> Elegir temperatura </h2>
             <label for="temp"> Temperatura: </label>
-            <input type="text" id="idSetTemp" name="setTemp" value=""> <br> </br>
+            <input type="text" id="idSetTemp" name="setTemp" value=""><br><br>
 
             <h2> Elegir humedad </h2>
             <label for="hum"> Humedad: </label>
-            <input type="text" id="idSetHum" name="setHum" value=""> <br> </br>
+            <input type="text" id="idSetHum" name="setHum" value=""><br></br>
             <input type="submit" value="Set Values">
 
         </form>
@@ -47,7 +47,7 @@
             <input type="text" id="minTemp" name="minTemp" value=""><br></br>
 
             <label for="maxTemp">Maximum:</label>
-            <input type="text" id="maxTemp" name="maxTemp" value=""><br><br>
+            <input type="text" id="maxTemp" name="maxTemp" value=""><br></br>
 
 
             <p> Humidity Range </p>
@@ -57,21 +57,35 @@
             <input type="text" id="minHum" name="minHum" value=""><br></br>
 
             <label for="maxHum">Maximum:</label>
-            <input type="text" id="maxHum" name="maxHum" value=""><br><br>
+            <input type="text" id="maxHum" name="maxHum" value=""><br></br>
             <input type="submit" value="Set Ranges">
 
-        </form><br><br>
+        </form><br></br>
 
-        <button onclick=location.href="https://thingspeak.com/channels/1439978"> Watch thingSpeak data</button> <br>
-        <br>
+        <button onclick=location.href="https://thingspeak.com/channels/1439978"> Watch thingSpeak data</button> <br></br>
 
         <div>
-            <h2> Special buttons for general use </h2>
-            <button onclick=location.href="special1"> Special 1 </button>
-            <button onclick=location.href="special2"> Special 2 </button>
-            <button onclick=location.href="special3"> Special 3 </button>
+            <h2>Select one of the special command</h2>
+            <form action="/special">
+                <select name="com" id="com">
+                    <option value="special1">special1</option>
+                    <option value="special2">special2</option>
+                    <option value="special3">special3</option>
+                </select>
+                <br></br>
+
+                <label for="arg1">Arg1:</label>
+                <input type="text" id="arg1" name="arg1" value=""><br></br>
+
+                <label for="arg2">Arg2:</label>
+                <input type="text" id="arg2" name="arg2" value=""><br><br>
+
+                <input type="submit" value="Send special">
+
+            </form>
             <br></br>
         </div>
+
     <div>
         <h2> Program a command to be executed in the future </h2>
         <form action="timer">

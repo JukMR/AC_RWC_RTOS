@@ -42,7 +42,7 @@ extern UART_HandleTypeDef huart2;
 
 extern SemaphoreHandle_t xSemaphoreOneShotTask;
 
-char buffer[64];
+// char buffer[64];
 
 /* Start of main page */
 char *home_header =
@@ -64,9 +64,10 @@ char *home_header =
         </div>";
 
 
+
 char *home_tail =
 
-	"<form action=\"/setForm\">\n\
+       "<form action=\"/setForm\">\n\
             <h2> Elegir temperatura </h2>\n\
             <label for=\"temp\"> Temperatura: </label>\n\
             <input type=\"text\" id=\"idSetTemp\" name=\"setTemp\" value=\"\"> <br> </br>\n\
@@ -92,14 +93,27 @@ char *home_tail =
             <input type=\"submit\" value=\"Set Ranges\">\n\
         </form><br><br>\n\
         <button onclick=location.href=\"https://thingspeak.com/channels/1439978\"> Watch thingSpeak data</button> <br>\n\
-        <br>\n\
-        <div>\n\
-            <h2> Special buttons for general use </h2>\n\
-            <button onclick=location.href=\"special1\"> Special 1 </button>\n\
-            <button onclick=location.href=\"special2\"> Special 2 </button>\n\
-            <button onclick=location.href=\"special3\"> Special 3 </button>\n\
-			<br></br>\n\
+        <br>";
+
+char *specialCommand =
+        "<div>\n\
+		    <h2>Select one of the special command</h2>\n\
+            <form action=\"/special\">\n\
+                <select name=\"com\" id=\"com\">\n\
+                    <option value=\"special1\">special1</option>\n\
+                    <option value=\"special2\">special2</option>\n\
+                    <option value=\"special3\">special3</option>\n\
+                </select>\n\
+                <br></br>\n\
+                <label for=\"arg1\">Arg1:</label>\n\
+                <input type=\"text\" id=\"arg1\" name=\"arg1\" value=\"\"><br></br>\n\
+                <label for=\"arg2\">Arg2:</label>\n\
+                <input type=\"text\" id=\"arg2\" name=\"arg2\" value=\"\"><br><br>\n\
+                <input type=\"submit\" value=\"Send special\">\n\
+            </form>\n\
+            <br></br>\n\
         </div>";
+
 
 char *scheduledCommands =
    "<div>\n\
@@ -153,6 +167,7 @@ char *receiveCommand =
 </body>\n\
 </html>";
 
+/* End of receive command page */
 
 /* Error page */
 char *error =
@@ -166,8 +181,10 @@ char *error =
 			    </div>\n\
 			</body>\n\
 			</html>";
+/* End of error page */
 
-/*****************************************************************************************************************************************/
+
+/***********************************************************************/
 
 int wait_timeout(char *str, UART_HandleTypeDef *uart, uint32_t times);
 
@@ -240,7 +257,7 @@ int Server_Send(char *str, int Link_ID)
 }
 
 
-int Server_Send_main(char *start, char *end, char *timers, int Link_ID, DHT_DataTypedef *dht_struct)
+int Server_Send_main(char *start, char *end, char *timers, char *special, int Link_ID, DHT_DataTypedef *dht_struct)
 {
 	int lenStart = strlen(start);
 	char data[80];
@@ -291,6 +308,19 @@ int Server_Send_main(char *start, char *end, char *timers, int Link_ID, DHT_Data
 //	while (!(Wait_for("SEND OK", wifi_uart)));
 	if (!(wait_timeout("SEND OK", wifi_uart, 10000000))) goto reset;
 
+	/* special processing part */
+	Uart_flush(wifi_uart);
+	int lenSpecial = strlen(special);
+	sprintf(data, "AT+CIPSEND=%d,%d\r\n", Link_ID, lenSpecial);
+	Uart_sendstring(data, wifi_uart);
+
+//	while (!(Wait_for(">", wifi_uart)));
+	if (!(wait_timeout(">", wifi_uart, 10000000))) goto reset;
+	Uart_sendstring(special, wifi_uart);
+
+//	while (!(Wait_for("SEND OK", wifi_uart)));
+	if (!(wait_timeout("SEND OK", wifi_uart, 10000000))) goto reset;
+
 
 	/* Timer processing part */
 	Uart_flush(wifi_uart);
@@ -334,7 +364,7 @@ void Server_Handle(char *str, int Link_ID, ControlTempParams_t *pxArg)
 
 	else if (!(strcmp(str, "/main")))
 	{
-		Server_Send_main(home_header, home_tail, scheduledCommands, Link_ID, &pxArg->xDhtPolledData);
+		Server_Send_main(home_header, home_tail, scheduledCommands, specialCommand, Link_ID, &pxArg->xDhtPolledData);
 	}
 
 	else if (!(strcmp(str, "/setForm")))
@@ -350,6 +380,12 @@ void Server_Handle(char *str, int Link_ID, ControlTempParams_t *pxArg)
 	}
 
 	else if (!(strcmp(str, "/timer")))
+	{
+		sprintf(datatosend, receiveCommand);
+		Server_Send(datatosend, Link_ID);
+	}
+
+	else if (!(strcmp(str, "/special")))
 	{
 		sprintf(datatosend, receiveCommand);
 		Server_Send(datatosend, Link_ID);
@@ -582,25 +618,22 @@ void Server_Start(ControlTempParams_t *arg, xScheduledTask_t *xSharedArgs)
 
 
 	/* Special buttons */
-	else if (Look_for("/special1", buftostoreheader) == 1)
+	else if (Look_for("/special", buftostoreheader) == 1)
 	{
+		char command[20] = {0};
+		char arg1[20] = {0};
+		char arg2[20] = {0};
+		char buf[64] = {0};
+
+		GetDataFromBuffer("com=", "&", buftostoreheader, command);
+		GetDataFromBuffer("arg1=", "&", buftostoreheader, arg1);
+		GetDataFromBuffer("arg2=", " HTTP", buftostoreheader, arg2);
+
 		// send special1 uart com
-		Uart_sendstring("do=special1.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID, arg);
-	}
 
-	else if (Look_for("/special2", buftostoreheader) == 1)
-	{
-		// send special2 uart com
-		Uart_sendstring("do=special2.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID, arg);
-	}
-
-	else if (Look_for("/special3", buftostoreheader) == 1)
-	{
-		// send special3 uart com
-		Uart_sendstring("do=special3.\r\n", device_uart);
-		Server_Handle("/receiveCommand", Link_ID, arg);
+		sprintf(buf, "do=%s,%s,%s.\r\n", command, arg1, arg2);
+		Uart_sendstring(buf, device_uart);
+		Server_Handle("/special", Link_ID, arg);
 	}
 
 	else if (Look_for("/favicon.ico", buftostoreheader) == 1)
