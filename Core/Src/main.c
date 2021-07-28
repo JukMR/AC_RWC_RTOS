@@ -126,7 +126,7 @@ void vTaskRefreshWebserver( void *pvParameters )
 
 		// xSemaphoreGive(xMutexEsp8266);
 
-		vTaskDelay( pdMS_TO_TICKS( 500 ) );
+		vTaskDelay( pdMS_TO_TICKS( 100 ) );
 	}
 }
 
@@ -342,7 +342,7 @@ void vDelayTask( void * pvParameters ){
 			vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( cast->uTime * 1000 ) );
 
 
-		HandleScheduledCommand( &cast->pcCommand, &cast->pcArg1, &cast->pcArg2 );
+		HandleScheduledCommand( &*(cast->pcCommand), &*(cast->pcArg1), &*(cast->pcArg2) );
 
 		vTaskDelete( NULL );
 		/* Function should not reach here */
