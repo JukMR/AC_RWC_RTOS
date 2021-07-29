@@ -63,7 +63,7 @@ typedef struct {
 void vTaskSendDataThingSpeak( void *pvParameters )
 {
 
-	uint8_t uBuffer[2];
+	uint8_t uBuffer[2] = { 0 };
 	xTask_params_t *pxTmp;
 
 	#if DEBUG
@@ -133,9 +133,9 @@ void vTaskControlTempHum( void *pvParameters )
 	{
 		xParam = ( xStateStructure_t * ) pvParameters;
 
-		DhtReadings_t tmp;
+		DhtReadings_t tmp = { 0 };
 
-		xQueueReceive(xDhtQueue, &tmp, portMAX_DELAY);
+		xQueueReceive( xDhtQueue, &tmp, portMAX_DELAY );
 
 		/* Save temperature and humidity value to memory */
 		xParam->xDhtPolledData.uTemperature = tmp.uTemperature;
@@ -211,7 +211,7 @@ void vTaskGetDataDHT( void *pvParameters )
 
 	xTimerHandle *xTimer;
 
-	DhtReadings_t tmp;
+	DhtReadings_t tmp = { 0 };
 
 	#if DEBUG
 	volatile UBaseType_t uxHighWaterMark;
