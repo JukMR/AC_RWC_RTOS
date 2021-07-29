@@ -347,18 +347,13 @@ void vTaskDelayedCommand( void *pvParameters ){
 	BaseType_t taskCreated;
 	TaskHandle_t xHandle = NULL;
 	xDelayTask_t *cast;
-	xDelayTask_t tmp = { 0 };
 
 	for (;;) {
 		xSemaphoreTake ( xSemaphoreOneShotTask, portMAX_DELAY );
 
 		cast = ( xDelayTask_t * ) pvParameters;
-		strcpy( (char *) &( tmp.pcCommand ), & ( *cast->pcCommand ) );
-		strcpy( (char *) &( tmp.pcArg1 ), & ( *cast->pcArg1 ) );
-		strcpy( (char *) &( tmp.pcArg2 ), & ( *cast->pcArg2 ) );
-		tmp.uTime = cast->uTime;
 
-		taskCreated = xTaskCreate( vDelayTask, "vDelayTask", 200, &tmp, 3, &xHandle );
+		taskCreated = xTaskCreate( vDelayTask, "vDelayTask", 200, cast, 3, &xHandle );
 
 		if ( taskCreated == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY ){
 			/* Task not created */
