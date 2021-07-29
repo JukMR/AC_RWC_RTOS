@@ -1,6 +1,6 @@
 ![Caratula FAMAF](resources/famaf.jpg)
 
-# Informe de desarrollo aplicación de control de un aire acondicionado (AC) usando FreeRTOS
+# Informe de desarrollo aplicación de control de un aire acondicionado usando FreeRTOS
 
 ### Materia: MICROCONTROLADORES – SISTEMAS EMBEBIDOS - 2021
 
@@ -9,7 +9,7 @@
 
 # Introducción
 
-Como proyecto final para la materia de Microcontroladores y Sistemas Embebidos, se desarrolló una aplicación utilizando FreeRTOS para manejar el control de un aire acondicionado. Se definió previamente una API de control del AC y en base a esta se desarrolló la aplicación.
+Como proyecto final para la materia de Microcontroladores y Sistemas Embebidos, se desarrolló una aplicación utilizando FreeRTOS para manejar el control de un aire acondicionado (AC). Se definió previamente una API de control del AC y en base a esta se desarrolló la aplicación.
 
 El principal objetivo de la aplicación es permitir, mediante la medición constante cada 3 segundos de la temperatura y la humedad, enviar los comandos de control a través de una UART para mantener los valores en un rango específico, o bien en un solo valor. Además, cada 15 segundos las mediciones son enviadas a la página web `ThingSpeak` para llevar un control de las variaciones de los valores aprovechando los gráficos que la web realiza. Por último, posibilita programar comandos para que sean ejecutados en el futuro especificando el tiempo en segundos, minutos, horas y/o días.
 
@@ -20,7 +20,7 @@ Los recursos de hardware utilizados son:
 
 * Sensor Dht11 para la medición de la temperatura y la humedad.
 
-* Placa NodeMCU V3 LiLon que implementa el microchip ESP8266.
+* Placa NodeMCU V3 LoLin que implementa el microchip ESP8266.
 
 * (Opcional) Adaptador UART a Usb para conectar la interfaz de salida de los comandos a la PC.
 
@@ -28,7 +28,7 @@ Los recursos de hardware utilizados son:
 
 ## Diagrama de conexiones de los bloques de hardware
 
-En el siguiente gráfico se muestra la interacción entre los distintos recursos de hardware. La placa Discovery se comunica mediante un pin `GPIO` con el sensor dht11 para comenzar y sincronizar la medición. Con la placa NodeMCU se comunica por la primera interfaz `UART` para recibir los comandos que el usuario ingresa mediante la página web, y envía el html para ser renderizado por el navegador, junto con las últimas mediciones que realizó el sensor para mostrarlas. También transmite al servidor `thingSpeak` las últimas mediciones para realizar los gráficos. En última instancia, envía a la segunda interfaz `UART` los comandos de control que correspondan.
+En el siguiente gráfico se muestra la interacción entre los distintos recursos de hardware. La placa Discovery se comunica mediante un pin `GPIO` con el sensor dht11 para comenzar y sincronizar la medición. Con el microchip Esp8266 se comunica por la primera interfaz `UART` para recibir los comandos que el usuario ingresa mediante la página web, y envía el html para ser renderizado por el navegador, junto con las últimas mediciones que realizó el sensor para mostrarlas. También transmite al servidor `thingSpeak` las últimas mediciones para realizar los gráficos. En última instancia, envía a la segunda interfaz `UART` los comandos de control que correspondan.
 
 ![Diagrama bloque hardware](resources/hw_block.png)
 
