@@ -480,7 +480,7 @@ static void Handle_controlData(xSetRangeBuffer_t *tmp, xStateStructure_t *pxArg)
 	}
 }
 
-void HandleScheduleData(xTimerBuffer_t *pxData, xDelayTask_t *pxTaskData){
+static void HandleScheduleData(xTimerBuffer_t *pxData, xDelayTask_t *pxTaskData){
 	uint32_t uTimeInSeconds = 0, uDays = 0, uHours = 0, uMinutes = 0, uSeconds = 0;
 
 	uDays = (uint32_t) atoi(pxData->pcDays);

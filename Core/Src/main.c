@@ -430,7 +430,6 @@ int main( void )
 		Error_Handler();
 
 
-
 	/* Check timers were started correctly */
 	if ( xTimerStart( xBlinkBlueLed, 0 ) == pdFAIL || xTimerStart( xBlinkOrangeLed, 0 ) == pdFAIL )
 	{
