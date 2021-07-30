@@ -32,7 +32,7 @@ En el siguiente gráfico se muestra la interacción entre los distintos recursos
 
 ![Diagrama bloque hardware](resources/hw_block.png)
 
-En el siguiente grafico, podemos ver la disposición de las conexiones reales:
+En el siguiente grafico, se puede ver la disposición de las conexiones reales:
 ![Conexiones de hardware](resources/hw_connections.png)
 
 
@@ -99,7 +99,7 @@ Aquí se elige de la lista uno de los comandos descriptos anteriormente, se sele
 
 La aplicación FreeRTOS desarrollada consta de 5 tareas:
 
-![Diagrama tareas RTOS](resources/RTOSTasks.png)
+![Diagrama tareas RTOS](resources/RTOSTasksDiagram.png)
 
 
 * `vTaskGetDataDHT` es la tarea que se encarga de realizar las mediciones al sensor Dht11, se ejecuta cada 3 segundos y luego envía, por la cola `xDhtQueue`, los valores obtenidos a la tarea de control `vTaskControlTempHum`.
@@ -108,6 +108,19 @@ La aplicación FreeRTOS desarrollada consta de 5 tareas:
 
 * `vTaskControlTempHum` esta tarea se desbloquea una vez que obtiene las mediciones de `vTaskGetDataDHT` a través de la cola `xDhtQueue`, revisa el modo actual, si se está controlando un valor o un rango específico de mediciones (tanto para la temperatura, como para la humedad), y envía el comando correspondiente para aumentar o disminuir dicho valor. Si el modo actual es el control de un rango, cuando la medida está por debajo del mínimo se comanda aumentar el valor hasta pasar el máximo, y viceversa para el caso por arriba del máximo.
 
-* `vTaskRefreshWebserver` el trabajo de esta tarea es manejar el servidor web que permite la interacción del usuario con la aplicación mediante una conexión wifi. Se ejecuta cada 100ms y tiene la prioridad más baja de todas, ya que es importante que siempre que se pueda se esté ejecutando para proveerle al usuario una buena interacción. No obstante, se deja un tiempo libre para que la `idleTask` pueda ejecutarse. Además, esta tarea maneja los pedidos del usuario para realizar los cambios de temperatura o humedad, y la petición para ejecutar una tarea dentro de un tiempo determinado, recibiendo los parámetros y otorgando el semáforo `xSemaphoreOneShotTask`. También muestra en la página las últimas mediciones realizadas.
+* `vTaskRefreshWebserver` el trabajo de esta tarea es manejar el servidor web que permite la interacción del usuario con la aplicación mediante una conexión wifi. Se ejecuta cada 100 ms y tiene la prioridad más baja de todas, ya que es importante que siempre que se pueda se esté ejecutando para proveerle al usuario una buena interacción. No obstante, se deja un tiempo libre para que la `idleTask` pueda ejecutarse. Además, esta tarea maneja los pedidos del usuario para realizar los cambios de temperatura o humedad, y la petición para ejecutar una tarea dentro de un tiempo determinado, recibiendo los parámetros y otorgando el semáforo `xSemaphoreOneShotTask`. También muestra en la página las últimas mediciones realizadas.
 
 * `vTaskDelayedCommand` esta tarea se desbloquea con el semáforo `xSemaphoreOneShotTask`, recibe los datos (el comando, los argumentos y el tiempo a esperar) actualizados por `vTaskRefreshWebserver` y crea una tarea. Nuevamente, vuelve a bloquearse esperando el semáforo. La tarea creada se bloquea hasta que el tiempo solicitado haya transcurrido, luego envía la orden y se autodestruye.
+
+
+## Esquema de prioridades
+
+La tarea con la prioridad 5, la más alta de todas, es `vTaskGetDataDHT`, ya que se ejecuta por muy poco tiempo, es importante para mantener actualizadas las mediciones y se necesita que la tarea no sea interrumpida durante el proceso de comunicación con el sensor DHT11 que maneja tiempos pequeños pero críticos.
+
+La siguiente tarea en el orden de prioridad es `vTaskControlTempHum` con un valor de 4. Esto permite que la tarea se ejecute justo después de que `vTaskGetDataDHT` realice las mediciones y envié los datos por `xDhtQueue`. Así, apenas las nuevas mediciones estén disponibles, pueden enviarse los comandos de control y actualizar las variables en memoria global que las tareas `vTaskSendDataThingSpeak` y `vTaskRefreshWebserver` van a leer.
+
+Después sigue `vTaskSendDataThingSpeak` con una prioridad de 3, ya que al tener un periodo bastante alto de 15 segundos y como solo envía los dos datos a la `thingSpeak`, se ejecuta por muy poco tiempo y luego vuelve a bloquearse hasta cumplir su periodo.
+
+Luego sigue `vTaskDelayedCommand` con prioridad 2 ya que la ejecución de esta tarea puede realizarse luego de que las acciones anteriores. En el peor de los casos, se retrasará la programación de la tarea par de segundos.
+
+Y por último, `vTaskRefreshWebserver` tiene la menor prioridad de 1, solo por encima de la `idleTask`. De esta forma, se permite que esta tarea se ejecute solo cuando las demás están bloqueadas y se ejecuta en un periodo de 100 ms para permitir la ejecución de la `idleTask`.
