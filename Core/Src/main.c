@@ -456,11 +456,11 @@ int main( void )
 
 	if ( xSemaphoreOneShotTask != NULL )
 	{
-		iRes1 = xTaskCreate( vTaskGetDataDHT, "vTaskGetDataDHT", 300, &xBlinkBlueLed, 5, NULL );
-		iRes2 = xTaskCreate( vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 470, pxTask2Args, 3, NULL );
-		iRes3 = xTaskCreate( vTaskControlTempHum, "vTaskControlTempHum", 215, pxRefreshVar->pxControl, 4, NULL );
-		iRes4 = xTaskCreate( vTaskRefreshWebserver, "vTaskRefreshWebserver", 1450, pxRefreshVar, 1, NULL );
-		iRes5 = xTaskCreate( vTaskDelayedCommand, "vTaskDelayedCommand", 300, pxRefreshVar->pxSharedArgs, 2, NULL );
+		iRes1 = xTaskCreate( vTaskGetDataDHT, "vTaskGetDataDHT", 300, (void *) &xBlinkBlueLed, 5, NULL );
+		iRes2 = xTaskCreate( vTaskSendDataThingSpeak, "vTaskSendDataThingSpeak", 470, (void *) pxTask2Args, 3, NULL );
+		iRes3 = xTaskCreate( vTaskControlTempHum, "vTaskControlTempHum", 215, (void *) pxRefreshVar->pxControl, 4, NULL );
+		iRes4 = xTaskCreate( vTaskRefreshWebserver, "vTaskRefreshWebserver", 1450, (void *) pxRefreshVar, 1, NULL );
+		iRes5 = xTaskCreate( vTaskDelayedCommand, "vTaskDelayedCommand", 300, (void *) pxRefreshVar->pxSharedArgs, 2, NULL );
 	}
 
 	/* Check all task were created correctly */
